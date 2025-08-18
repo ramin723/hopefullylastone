@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  fullName     String
+  phone        String    @unique
+  passwordHash String
+  role         UserRole
+  status       String    @default("ACTIVE")
+  createdAt    DateTime  @default(now())
+  Mechanic     Mechanic?
+  Vendor       Vendor?
+}
+
+model Mechanic {
+  id           Int           @id @default(autoincrement())
+  userId       Int           @unique
+  code         String        @unique
+  qrActive     Boolean       @default(true)
+  tier         String?
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+}
+
+model Vendor {
+  id             Int           @id @default(autoincrement())
+  userId         Int           @unique
+  storeName      String
+  city           String?
+  percentDefault Float         @default(0.05)
+  status         String        @default("ACTIVE")
+  createdAt      DateTime      @default(now())
+  settlements    Settlement[]
+  transactions   Transaction[]
+  user           User          @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id             Int              @id @default(autoincrement())
+  mechanicId     Int
+  vendorId       Int
+  customerPhone  String
+  amountTotal    Int
+  amountEligible Int
+  note           String?
+  status         String           @default("PENDING")
+  createdAt      DateTime         @default(now())
+  commission     Commission?
+  SettlementItem SettlementItem[]
+  mechanic       Mechanic         @relation(fields: [mechanicId], references: [id])
+  vendor         Vendor           @relation(fields: [vendorId], references: [id])
+}
+
+model Commission {
+  id             Int         @id @default(autoincrement())
+  transactionId  Int         @unique
+  rateMechanic   Float       @default(0.03)
+  ratePlatform   Float       @default(0.02)
+  mechanicAmount Int
+  platformAmount Int
+  transaction    Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model Settlement {
+  id                 Int              @id @default(autoincrement())
+  vendorId           Int
+  periodStart        DateTime
+  periodEnd          DateTime
+  totalVendorPayable Int
+  status             String           @default("DRAFT")
+  createdAt          DateTime         @default(now())
+  vendor             Vendor           @relation(fields: [vendorId], references: [id])
+  items              SettlementItem[]
+}
+
+model SettlementItem {
+  id             Int         @id @default(autoincrement())
+  settlementId   Int
+  transactionId  Int
+  platformAmount Int
+  mechanicAmount Int
+  settlement     Settlement  @relation(fields: [settlementId], references: [id])
+  transaction    Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model PriceCache {
+  id             Int      @id @default(autoincrement())
+  isacoCode      String
+  title          String
+  vehicleModels  String?
+  retailPrice    Int?
+  wholesalePrice Int?
+  source         String?
+  lastSeenAt     DateTime @default(now())
+}
+
+model PriceHistory {
+  id        Int      @id @default(autoincrement())
+  isacoCode String
+  price     Int
+  seenAt    DateTime @default(now())
+}
+
+enum UserRole {
+  MECHANIC
+  VENDOR
+  ADMIN
+}
