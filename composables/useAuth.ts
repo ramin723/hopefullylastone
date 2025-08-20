@@ -1,6 +1,4 @@
 // composables/useAuth.ts
-// @ts-ignore - Nuxt 4 auto-imports issue
-import { $fetch } from 'ofetch' // اگر بعداً TS خودش شناخت، می‌تونی حذفش کنی
 
 type AuthUser = {
   id: number
@@ -12,7 +10,7 @@ type AuthUser = {
 export const useAuth = () => {
   const isClient = typeof window !== 'undefined'
 
-  // useState نیازی به import ندارد، با types: ["nuxt"] شناخته می‌شود
+  // استفاده از useState از Nuxt
   const token = useState<string | null>(
     'auth_token',
     () => (isClient ? localStorage.getItem('auth_token') : null)
@@ -29,10 +27,11 @@ export const useAuth = () => {
   }
 
   async function login(phone: string, password: string) {
+    // استفاده از $fetch از Nuxt با type assertion ساده
     const res = await $fetch('/api/auth/login', {
       method: 'POST',
       body: { phone, password }
-    }) as { token: string; user: NonNullable<AuthUser> }
+    }) as any
 
     setToken(res.token)
     user.value = res.user
@@ -45,7 +44,8 @@ export const useAuth = () => {
   }
 
   function authHeaders() {
-    return token.value ? { Authorization: `Bearer ${token.value}` } : {}
+    if (!token.value) return {}
+    return { Authorization: `Bearer ${token.value}` }
   }
 
   return { token, user, login, logout, authHeaders }

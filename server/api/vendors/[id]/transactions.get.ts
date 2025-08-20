@@ -32,9 +32,17 @@ export default defineEventHandler(async (event) => {
     where,
     orderBy: { createdAt: 'desc' },
     include: { commission: true, mechanic: { include: { user: true } } }
-  })
+  }) as Array<{
+    id: number
+    createdAt: Date
+    status: string
+    mechanicId: number
+    mechanic: { user: { fullName: string }, code: string }
+    commission: { mechanicAmount: number; platformAmount: number } | null
+    amountTotal: number
+  }>
 
-  return rows.map(tx => ({
+  return rows.map((tx) => ({
     id: tx.id,
     createdAt: tx.createdAt,
     status: tx.status,

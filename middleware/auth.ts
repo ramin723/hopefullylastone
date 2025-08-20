@@ -5,10 +5,9 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   // بررسی وجود توکن
-  if (process.client) {
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      return navigateTo('/login')
-    }
+  const token = useCookie('auth_token').value || (process.client ? localStorage.getItem('auth_token') : null)
+  
+  if (!token) {
+    return navigateTo('/login')
   }
 })

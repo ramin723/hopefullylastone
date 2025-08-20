@@ -4,14 +4,14 @@
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">ثبت فروش</h1>
-        <p class="mt-2 text-gray-600">فروشگاه: {{ vendorName || 'نامشخص' }}</p>
+        <p class="mt-2 text-gray-600">فروشگاه: {{ vendorName }}</p>
       </div>
 
       <!-- Mechanic Code Section -->
       <div class="bg-white shadow rounded-lg p-6 mb-6">
         <h2 class="text-lg font-medium text-gray-900 mb-4">کد مکانیک</h2>
         
-        <div v-if="!mechanicCode" class="space-y-4">
+        <div v-if="!mechanic" class="space-y-4">
           <div>
             <label for="mechanicCode" class="block text-sm font-medium text-gray-700">
               کد مکانیک
@@ -19,14 +19,15 @@
             <div class="mt-1 flex space-x-3 rtl:space-x-reverse">
               <input
                 id="mechanicCode"
-                v-model="inputMechanicCode"
+                v-model="mechanicCode"
                 type="text"
                 class="flex-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="ABC123"
+                @keyup.enter="validateMechanicCode"
               />
               <button
                 @click="validateMechanicCode"
-                :disabled="!inputMechanicCode || validating"
+                :disabled="!mechanicCode || validating"
                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 <span v-if="validating">اعتبارسنجی...</span>
@@ -45,10 +46,10 @@
             </div>
             <div class="ml-3">
               <p class="text-sm font-medium text-green-800">
-                مکانیک: {{ mechanicName }}
+                مکانیک: {{ mechanic.name }}
               </p>
               <p class="text-sm text-green-700 mt-1">
-                کد: {{ mechanicCode }}
+                کد: {{ mechanic.code }}
               </p>
             </div>
           </div>
@@ -60,14 +61,137 @@
       </div>
 
       <!-- Sales Form -->
-      <div v-if="mechanicCode" class="bg-white shadow rounded-lg p-6">
+      <div v-if="mechanic" class="bg-white shadow rounded-lg p-6">
         <h2 class="text-lg font-medium text-gray-900 mb-4">فرم فروش</h2>
         
         <form @submit.prevent="handleSubmit" class="space-y-6">
+          <!-- Items Section -->
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-md font-medium text-gray-900">آیتم‌های فروش</h3>
+              <div class="flex space-x-2 rtl:space-x-reverse">
+                <button
+                  type="button"
+                  @click="toggleAllEligible"
+                  class="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  {{ allEligible ? 'نامشمول همه' : 'مشمول همه' }}
+                </button>
+                <button
+                  type="button"
+                  @click="addItem"
+                  class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  + ردیف
+                </button>
+              </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      نام قطعه
+                    </th>
+                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      تعداد
+                    </th>
+                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      قیمت واحد
+                    </th>
+                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      جمع
+                    </th>
+                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      مشمول
+                    </th>
+                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      عملیات
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="(item, index) in items" :key="index" class="hover:bg-gray-50">
+                    <td class="px-3 py-2">
+                      <input
+                        v-model="item.name"
+                        type="text"
+                        class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        placeholder="نام قطعه"
+                        @keyup.enter="addItem"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model.number="item.qty"
+                        type="number"
+                        min="1"
+                        class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        placeholder="1"
+                        @keyup.enter="addItem"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model.number="item.unitPrice"
+                        type="number"
+                        min="0"
+                        class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        placeholder="0"
+                        @keyup.enter="addItem"
+                      />
+                    </td>
+                    <td class="px-3 py-2 text-sm text-gray-900">
+                      {{ formatCurrency(item.qty * item.unitPrice) }}
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model="item.eligible"
+                        type="checkbox"
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <button
+                        type="button"
+                        @click="removeItem(index)"
+                        class="text-red-600 hover:text-red-800"
+                        :disabled="items.length === 1"
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Totals Section -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">مبلغ کل</dt>
+                <dd class="mt-1 text-lg font-semibold text-gray-900">{{ formatCurrency(amountTotal) }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">مبلغ مشمول</dt>
+                <dd class="mt-1 text-lg font-semibold text-indigo-600">{{ formatCurrency(amountEligible) }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">کمیسیون (تخمینی)</dt>
+                <dd class="mt-1 text-sm text-gray-600">{{ formatCurrency(estimatedCommission) }}</dd>
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Info -->
           <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label for="customerPhone" class="block text-sm font-medium text-gray-700">
-                شماره تلفن مشتری
+                شماره تلفن مشتری *
               </label>
               <input
                 id="customerPhone"
@@ -76,37 +200,6 @@
                 required
                 class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="09123334444"
-              />
-            </div>
-
-            <div>
-              <label for="amountTotal" class="block text-sm font-medium text-gray-700">
-                مبلغ کل (تومان)
-              </label>
-              <input
-                id="amountTotal"
-                v-model.number="form.amountTotal"
-                type="number"
-                required
-                min="0"
-                class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="2500000"
-              />
-            </div>
-
-            <div>
-              <label for="amountEligible" class="block text-sm font-medium text-gray-700">
-                مبلغ واجد شرایط (تومان)
-              </label>
-              <input
-                id="amountEligible"
-                v-model.number="form.amountEligible"
-                type="number"
-                required
-                min="0"
-                :max="form.amountTotal"
-                class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="2500000"
               />
             </div>
 
@@ -124,6 +217,25 @@
             </div>
           </div>
 
+          <!-- Validation Errors -->
+          <div v-if="validationErrors.length > 0" class="bg-red-50 border border-red-200 rounded-md p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">خطاهای اعتبارسنجی</h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <ul class="list-disc list-inside space-y-1">
+                    <li v-for="error in validationErrors" :key="error">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="flex justify-end space-x-3 rtl:space-x-reverse">
             <button
               type="button"
@@ -134,7 +246,7 @@
             </button>
             <button
               type="submit"
-              :disabled="submitting"
+              :disabled="submitting || !isFormValid"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               <span v-if="submitting">ثبت فروش...</span>
@@ -160,15 +272,19 @@
             </div>
             <div>
               <dt class="text-sm font-medium text-gray-500">مبلغ کل</dt>
-              <dd class="mt-1 text-sm text-gray-900">{{ formatCurrency(transactionResult.amountTotal) }}</dd>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatCurrency(transactionResult.amounts.total) }}</dd>
             </div>
             <div>
               <dt class="text-sm font-medium text-gray-500">مبلغ واجد شرایط</dt>
-              <dd class="mt-1 text-sm text-gray-900">{{ formatCurrency(transactionResult.amountEligible) }}</dd>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatCurrency(transactionResult.amounts.eligible) }}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-gray-500">کمیسیون</dt>
-              <dd class="mt-1 text-sm text-gray-900">{{ formatCurrency(transactionResult.commission) }}</dd>
+              <dt class="text-sm font-medium text-gray-500">کمیسیون مکانیک</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatCurrency(transactionResult.amounts.commission.mechanic) }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">کمیسیون پلتفرم</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatCurrency(transactionResult.amounts.commission.platform) }}</dd>
             </div>
           </dl>
         </div>
@@ -177,88 +293,171 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+// اضافه کردن middleware auth
 definePageMeta({
-  middleware: 'auth'
+  middleware: ['auth']
 })
 
 const route = useRoute()
-const { $fetch } = useNuxtApp()
+const { authHeaders, user } = useAuth()
+
+// Types
+type Item = { name: string; qty: number; unitPrice: number; eligible: boolean }
+type Mechanic = { id: number; code: string; name: string } | null
 
 // State
-const mechanicCode = ref('')
-const mechanicName = ref('')
-const inputMechanicCode = ref('')
-const mechanicError = ref('')
-const validating = ref(false)
+const mechanic = ref<Mechanic>(null)
+const mechanicCode = ref<string>('')
+const mechanicError = ref<string>('')
+const validating = ref<boolean>(false)
+
+const items = ref<Item[]>([
+  { name: '', qty: 1, unitPrice: 0, eligible: true }
+])
 
 const form = ref({
   customerPhone: '',
-  amountTotal: null,
-  amountEligible: null,
   note: ''
 })
 
-const submitting = ref(false)
-const error = ref('')
-const transactionResult = ref(null)
+const submitting = ref<boolean>(false)
+const error = ref<string>('')
+const transactionResult = ref<any>(null)
+
+// Computed
+const vendorName = computed(() => user.value?.fullName || 'نامشخص')
+
+const amountTotal = computed(() => {
+  return items.value.reduce((sum, item) => {
+    return sum + (item.qty * item.unitPrice)
+  }, 0)
+})
+
+const amountEligible = computed(() => {
+  return items.value.reduce((sum, item) => {
+    return sum + (item.eligible ? (item.qty * item.unitPrice) : 0)
+  }, 0)
+})
+
+const estimatedCommission = computed(() => {
+  return Math.round(amountEligible.value * 0.05) // 3% + 2% = 5%
+})
+
+const allEligible = computed(() => {
+  return items.value.length > 0 && items.value.every(item => item.eligible)
+})
+
+const validationErrors = computed(() => {
+  const errors = []
+  
+  if (!mechanic.value) {
+    errors.push('کد مکانیک باید اعتبارسنجی شود')
+  }
+  
+  if (!form.value.customerPhone.trim()) {
+    errors.push('شماره تلفن مشتری الزامی است')
+  }
+  
+  const validItems = items.value.filter(item => 
+    item.name.trim() && item.qty > 0 && item.unitPrice > 0
+  )
+  
+  if (validItems.length === 0) {
+    errors.push('حداقل یک آیتم معتبر باید وارد شود')
+  }
+  
+  if (amountEligible.value > amountTotal.value) {
+    errors.push('مبلغ مشمول نمی‌تواند بیشتر از مبلغ کل باشد')
+  }
+  
+  return errors
+})
+
+const isFormValid = computed(() => {
+  return validationErrors.value.length === 0
+})
 
 // Check if mechanic code exists in URL
 onMounted(() => {
-  if (route.query.code) {
-    inputMechanicCode.value = route.query.code
+  const code = route.query.code as string | undefined
+  if (code) {
+    mechanicCode.value = code
     validateMechanicCode()
   }
 })
 
 // Validate mechanic code
 async function validateMechanicCode() {
-  if (!inputMechanicCode.value) return
+  if (!mechanicCode.value) return
   
   validating.value = true
   mechanicError.value = ''
 
   try {
-    const response = await $fetch(`/api/referral/resolve/${inputMechanicCode.value}`)
+    const { data: response } = await useFetch(`/api/referral/resolve/${encodeURIComponent(mechanicCode.value)}`)
     
-    mechanicCode.value = inputMechanicCode.value
-    mechanicName.value = response.mechanic.fullName
-  } catch (err) {
+    if (response.value) {
+      mechanic.value = {
+        id: response.value.mechanicId,
+        name: response.value.mechanicName,
+        code: mechanicCode.value
+      }
+    }
+  } catch (err: any) {
+    console.error('Mechanic resolve error:', err)
     mechanicError.value = 'کد مکانیک نامعتبر است'
   } finally {
     validating.value = false
   }
 }
 
+// Add new item
+function addItem() {
+  items.value.push({ name: '', qty: 1, unitPrice: 0, eligible: true })
+}
+
+// Remove item
+function removeItem(index: number) {
+  if (items.value.length > 1) {
+    items.value.splice(index, 1)
+  }
+}
+
+// Toggle all items eligible
+function toggleAllEligible() {
+  const newValue = !allEligible.value
+  items.value.forEach(item => {
+    item.eligible = newValue
+  })
+}
+
 // Submit sales form
 async function handleSubmit() {
+  if (!isFormValid.value || !mechanic.value) return
+  
   submitting.value = true
   error.value = ''
 
   try {
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      throw new Error('توکن احراز هویت یافت نشد')
-    }
-
-    const response = await $fetch('/api/transactions', {
+    const { data: response } = await useFetch('/api/transactions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
+      headers: authHeaders() as Record<string, string>,
       body: {
-        mechanicCode: mechanicCode.value,
+        mechanicCode: mechanic.value.code,
         customerPhone: form.value.customerPhone,
-        amountTotal: form.value.amountTotal,
-        amountEligible: form.value.amountEligible,
+        amountTotal: amountTotal.value,
+        amountEligible: amountEligible.value,
         note: form.value.note
       }
     })
 
-    transactionResult.value = response
-    resetForm()
-  } catch (err) {
-    error.value = 'خطا در ثبت فروش: ' + (err.data?.message || err.message || 'خطای نامشخص')
+    if (response.value) {
+      transactionResult.value = response.value
+      resetForm()
+    }
+  } catch (err: any) {
+    error.value = 'خطا در ثبت فروش: ' + (err.data?.statusMessage || err.message || 'خطای نامشخص')
   } finally {
     submitting.value = false
   }
@@ -266,18 +465,18 @@ async function handleSubmit() {
 
 // Reset form
 function resetForm() {
+  items.value = [{ name: '', qty: 1, unitPrice: 0, eligible: true }]
   form.value = {
     customerPhone: '',
-    amountTotal: null,
-    amountEligible: null,
     note: ''
   }
   transactionResult.value = null
   error.value = ''
+  // Keep mechanic code for convenience
 }
 
 // Format currency
-function formatCurrency(amount) {
+function formatCurrency(amount: number) {
   return new Intl.NumberFormat('fa-IR').format(amount) + ' تومان'
 }
 </script>
