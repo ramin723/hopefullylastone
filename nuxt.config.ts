@@ -3,6 +3,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'], // فعال شد
+  
+  // اضافه کردن پرچم دیباگ سراسری
+  runtimeConfig: {
+    public: {
+      debug: false, // در dev می‌تونی true بذاری، در prod حتما false
+    }
+  },
+  
   app: {
     head: {
       // htmlAttrs: { lang: 'fa', dir: 'rtl' }, // هنوز غیرفعال

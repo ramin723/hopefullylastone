@@ -1,15 +1,13 @@
 // server/api/settlements/[id].get.ts
+import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { prisma } from '~/server/utils/db'
-import { verify } from '~/server/utils/jwt'
+import { requireAuth } from '~/server/utils/auth'
+import { decimalToNumber } from '~/server/utils/decimal'
 
 export default defineEventHandler(async (event) => {
   try {
-    // احراز هویت
-    const auth = getHeader(event, 'authorization') || ''
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
-    if (!token) throw createError({ statusCode: 401, statusMessage: 'Missing token' })
-    
-    const payload = verify<{ userId: number; role: string }>(token)
+    // احراز هویت و بررسی نقش
+    const auth = await requireAuth(event, ['ADMIN', 'VENDOR', 'MECHANIC'])
 
     const id = Number(getRouterParam(event, 'id'))
     if (!id || isNaN(id)) {
@@ -36,30 +34,49 @@ export default defineEventHandler(async (event) => {
           } 
         }
       }
-    }) as any
+    })
 
     if (!settlement) {
       throw createError({ statusCode: 404, statusMessage: 'Settlement not found' })
     }
 
     // بررسی مجوز دسترسی برای VENDOR
-    if (payload.role === 'VENDOR') {
+    if (auth.role === 'VENDOR') {
       const vendor = await prisma.vendor.findUnique({ 
-        where: { userId: payload.userId },
+        where: { userId: auth.id },
         select: { id: true }
       })
       
       if (!vendor || vendor.id !== settlement.vendorId) {
         throw createError({ statusCode: 403, statusMessage: 'Access denied: You can only view your own settlements' })
       }
-    } else if (payload.role !== 'ADMIN') {
-      throw createError({ statusCode: 403, statusMessage: 'Access denied: Invalid role' })
+    }
+
+    // بررسی مجوز دسترسی برای MECHANIC
+    if (auth.role === 'MECHANIC') {
+      const mechanic = await prisma.mechanic.findUnique({ 
+        where: { userId: auth.id },
+        select: { id: true }
+      })
+      
+      if (!mechanic) {
+        throw createError({ statusCode: 403, statusMessage: 'Mechanic profile not found' })
+      }
+      
+      // بررسی اینکه این تسویه شامل تراکنش‌های این مکانیک باشد
+      const hasAccess = settlement.items.some(item => 
+        item.transaction.mechanicId === mechanic.id
+      )
+      
+      if (!hasAccess) {
+        throw createError({ statusCode: 403, statusMessage: 'Access denied: This settlement does not contain your transactions' })
+      }
     }
 
     // لاگ موفقیت
-    console.log(`Settlement ${id} retrieved for user ${payload.userId} with role ${payload.role}`)
+    console.log(`[SETTLEMENT DETAIL API] Settlement ${id} retrieved for user ${auth.id} with role ${auth.role}`)
 
-    // بازگرداندن داده‌ها
+    // بازگرداندن داده‌ها - Decimal-safe
     return {
       id: settlement.id,
       vendor: { 
@@ -70,9 +87,9 @@ export default defineEventHandler(async (event) => {
       periodFrom: settlement.periodFrom,
       periodTo: settlement.periodTo,
       totals: {
-        eligible: settlement.totalAmountEligible,
-        mechanic: settlement.totalMechanicAmount,
-        platform: settlement.totalPlatformAmount
+        eligible: decimalToNumber(settlement.totalAmountEligible),
+        mechanic: decimalToNumber(settlement.totalMechanicAmount),
+        platform: decimalToNumber(settlement.totalPlatformAmount)
       },
       status: settlement.status,
       createdAt: settlement.createdAt,
@@ -88,10 +105,10 @@ export default defineEventHandler(async (event) => {
           code: item.transaction.mechanic.code
         },
         amounts: {
-          total: item.transaction.amountTotal,
-          eligible: item.transaction.amountEligible,
-          mechanic: item.mechanicAmount,
-          platform: item.platformAmount
+          total: decimalToNumber(item.transaction.amountTotal),
+          eligible: decimalToNumber(item.transaction.amountEligible),
+          mechanic: decimalToNumber(item.mechanicAmount),
+          platform: decimalToNumber(item.platformAmount)
         },
         commission: item.transaction.commission ? {
           rateMechanic: item.transaction.commission.rateMechanic,

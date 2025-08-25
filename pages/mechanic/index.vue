@@ -1,8 +1,18 @@
 <template>
   <main class="p-6 space-y-6">
     <header class="space-y-2">
-      <h1 class="text-xl font-bold">داشبورد مکانیک</h1>
-      <p v-if="user">سلام، {{ user.fullName }}</p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold">داشبورد مکانیک</h1>
+          <p v-if="user">سلام، {{ user.fullName }}</p>
+        </div>
+        <NuxtLink 
+          to="/mechanic/settlements"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          مشاهده تسویه‌ها
+        </NuxtLink>
+      </div>
     </header>
 
     <section class="space-y-3">
@@ -86,14 +96,15 @@
 
 <script setup lang="ts">
 definePageMeta({
-  middleware: 'auth'
+  auth: true
 })
 
 const router = useRouter()
-const { token, user, authHeaders } = useAuth()
+const { user, hydrated } = useAuth()
+const { get } = useApi()
 
 onMounted(() => {
-  if (!token.value) return router.push('/login')
+  if (hydrated.value && !user.value) return router.push('/login')
 })
 
 const q = reactive<{ from?: string; to?: string; status?: string }>({})
@@ -122,6 +133,7 @@ const statusOptions = [
 
 async function load() {
   try {
+    console.log('[MECHANIC PAGE] Starting load function')
     loading.value = true
     errorMsg.value = null
     const params = new URLSearchParams()
@@ -129,14 +141,34 @@ async function load() {
     if (q.to) params.set('to', q.to)
     if (q.status) params.set('status', q.status)
     const url = '/api/mechanic/transactions' + (params.toString() ? `?${params.toString()}` : '')
-    const headers = authHeaders()
-    if (headers.Authorization) {
-      data.value = await $fetch(url, { headers })
+    console.log('[MECHANIC PAGE] Requesting URL:', url)
+    console.log('[MECHANIC PAGE] Query params:', q)
+    
+    // اضافه کردن timeout و retry logic
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      console.log('[MECHANIC PAGE] Request timeout, aborting')
+      controller.abort()
+    }, 30000) // 30 ثانیه timeout
+    
+    try {
+      data.value = await get(url, { signal: controller.signal })
+      console.log('[MECHANIC PAGE] Response received:', data.value)
+    } catch (fetchError: any) {
+      if (fetchError.name === 'AbortError') {
+        throw new Error('درخواست به دلیل timeout لغو شد')
+      }
+      throw fetchError
+    } finally {
+      clearTimeout(timeoutId)
     }
+    
   } catch (e: any) {
+    console.error('[MECHANIC PAGE] Error in load function:', e)
     errorMsg.value = e?.data?.statusMessage || e?.message || 'خطا در بارگذاری'
   } finally {
     loading.value = false
+    console.log('[MECHANIC PAGE] Load function completed')
   }
 }
 
@@ -176,7 +208,24 @@ function clearDateRange() {
   load()
 }
 
-watchEffect(() => {
-  if (token.value) load()
+// حذف watchEffect که ممکن است باعث loop شود
+// watchEffect(() => {
+//   if (hydrated.value && user.value) load()
+// })
+
+// به جای آن، فقط یک بار در onMounted بارگذاری کنیم
+onMounted(() => {
+  if (hydrated.value && user.value) {
+    console.log('[MECHANIC PAGE] onMounted - starting initial load')
+    load()
+  }
 })
+
+// اضافه کردن watcher برای تغییرات user
+watch([hydrated, user], ([newHydrated, newUser]) => {
+  if (newHydrated && newUser && !loading.value) {
+    console.log('[MECHANIC PAGE] User state changed, starting load')
+    load()
+  }
+}, { immediate: false })
 </script>

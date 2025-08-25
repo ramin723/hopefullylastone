@@ -1,19 +1,14 @@
 // server/api/settlements/index.post.ts
+import { defineEventHandler, createError, readBody } from 'h3'
 import { prisma } from '../../utils/db'
-import { verify } from '../../utils/jwt'
+import { requireAuth } from '../../utils/auth'
 import { CreateSettlementSchema } from '../../validators/settlements'
+import { decimalToNumber } from '../../utils/decimal'
 
 export default defineEventHandler(async (event) => {
   try {
     // احراز هویت و بررسی نقش ADMIN
-    const auth = getHeader(event, 'authorization') || ''
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
-    if (!token) throw createError({ statusCode: 401, statusMessage: 'Missing token' })
-    
-    const payload = verify<{ userId: number; role: string }>(token)
-    if (payload.role !== 'ADMIN') {
-      throw createError({ statusCode: 403, statusMessage: 'Only ADMIN users can create settlements' })
-    }
+    const auth = await requireAuth(event, ['ADMIN'])
 
     // اعتبارسنجی ورودی
     const body = await readBody(event)
@@ -41,12 +36,20 @@ export default defineEventHandler(async (event) => {
     const toDate = new Date(to)
     toDate.setHours(23, 59, 59, 999) // inclusive
 
-    // تراکنش‌های قابل تسویه
+    // تراکنش‌های قابل تسویه - فقط آنهایی که در Settlement دیگری نیستند
     const txs = await prisma.transaction.findMany({
       where: {
         vendorId,
         status: 'PENDING',
-        createdAt: { gte: fromDate, lte: toDate }
+        createdAt: { gte: fromDate, lte: toDate },
+        // تراکنش‌هایی که در Settlement دیگری نیستند
+        id: {
+          notIn: (
+            await prisma.settlementItem.findMany({
+              select: { transactionId: true }
+            })
+          ).map(item => item.transactionId)
+        }
       },
       include: { commission: true }
     })
@@ -60,10 +63,18 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    console.log(`[SETTLEMENT CREATE] Found ${txs.length} available transactions for settlement`)
+
     // محاسبه مجموع‌ها
-    const totalAmountEligible = txs.reduce<number>((sum, t) => sum + t.amountEligible, 0)
-    const totalMechanicAmount = txs.reduce<number>((sum, t) => sum + (t.commission?.mechanicAmount ?? 0), 0)
-    const totalPlatformAmount = txs.reduce<number>((sum, t) => sum + (t.commission?.platformAmount ?? 0), 0)
+    const totalAmountEligible = txs.reduce<number>((sum, t) => {
+      return sum + decimalToNumber(t.amountEligible)
+    }, 0)
+    const totalMechanicAmount = txs.reduce<number>((sum, t) => {
+      return sum + decimalToNumber(t.commission?.mechanicAmount)
+    }, 0)
+    const totalPlatformAmount = txs.reduce<number>((sum, t) => {
+      return sum + decimalToNumber(t.commission?.platformAmount)
+    }, 0)
 
     // ایجاد Settlement و SettlementItem ها در یک تراکنش
     const result = await prisma.$transaction(async (tx) => {
@@ -89,11 +100,8 @@ export default defineEventHandler(async (event) => {
         }
       })
 
-      // به‌روزرسانی وضعیت تراکنش‌ها به SETTLED
-      await tx.transaction.updateMany({
-        where: { id: { in: txs.map(t => t.id) } },
-        data: { status: 'SETTLED' }
-      })
+      // حذف تغییر وضعیت تراکنش‌ها - فقط در SettlementItem ثبت می‌شوند
+      // وضعیت تراکنش‌ها هنگام mark-paid تغییر خواهد کرد
 
       return settlement
     })

@@ -30,5 +30,29 @@
 </template>
 
 <script setup>
-// صفحه اصلی - هدایت به لاگین
+// صفحه اصلی - هدایت به لاگین یا صفحه مناسب بر اساس نقش
+const user = useState<any>('auth:user', () => null)
+const hydrated = useState<boolean>('auth:hydrated', () => false)
+
+// اگر کاربر احراز هویت شده، بر اساس نقش redirect کن
+watchEffect(() => {
+  if (hydrated.value && user.value) {
+    const role = user.value.role
+    
+    switch (role) {
+      case 'ADMIN':
+        navigateTo('/admin/settlements')
+        break
+      case 'VENDOR':
+        navigateTo('/vendor/pos')
+        break
+      case 'MECHANIC':
+        navigateTo('/mechanic')
+        break
+      default:
+        // اگر نقش نامشخص است، به login برو
+        navigateTo('/login')
+    }
+  }
+})
 </script>

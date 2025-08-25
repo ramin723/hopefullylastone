@@ -1,0 +1,15 @@
+---
+description:هیچ تغییری در Schema/Seed بدون درخواست ما نده.
+
+requireAuth + role-check را همان‌طور که قبلاً استاندارد کردیم انجام بده.
+
+CSRF header با پلاگین موجود خودکار اضافه می‌شود؛ با $fetch و credentials:'include' کال کن.
+
+Decimal-safe: حتماً از server/utils/decimal.ts و formatNumber در UI استفاده کن.
+
+لاگ‌ها: کوتاه و بدون دادهٔ حساس؛ فقط prefix مناسب برای دیباگ کافی است.
+
+بدون watchEffect بی‌مورد؛ درخواست‌ها idempotent و یک‌بار fetch شوند.
+globs:
+alwaysApply: false
+---

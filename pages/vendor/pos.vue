@@ -58,6 +58,12 @@
         <div v-if="mechanicError" class="mt-3 text-red-600 text-sm">
           {{ mechanicError }}
         </div>
+
+        <!-- QR Scanner Section -->
+        <details class="mt-3">
+          <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">اسکن QR (اختیاری)</summary>
+          <QrScanner class="mt-2" @read="(code:string)=>{ mechanicCode = code }" />
+        </details>
       </div>
 
       <!-- Sales Form -->
@@ -296,11 +302,15 @@
 <script setup lang="ts">
 // اضافه کردن middleware auth
 definePageMeta({
-  middleware: ['auth']
+  auth: true
 })
 
+// Import QR Scanner component
+import QrScanner from '~/components/QrScanner.vue'
+
 const route = useRoute()
-const { authHeaders, user } = useAuth()
+const { user } = useAuth()
+const { post } = useApi()
 
 // Types
 type Item = { name: string; qty: number; unitPrice: number; eligible: boolean }
@@ -440,20 +450,16 @@ async function handleSubmit() {
   error.value = ''
 
   try {
-    const { data: response } = await useFetch('/api/transactions', {
-      method: 'POST',
-      headers: authHeaders() as Record<string, string>,
-      body: {
-        mechanicCode: mechanic.value.code,
-        customerPhone: form.value.customerPhone,
-        amountTotal: amountTotal.value,
-        amountEligible: amountEligible.value,
-        note: form.value.note
-      }
+    const response = await post('/api/transactions', {
+      mechanicCode: mechanic.value.code,
+      customerPhone: form.value.customerPhone,
+      amountTotal: amountTotal.value,
+      amountEligible: amountEligible.value,
+      note: form.value.note
     })
 
-    if (response.value) {
-      transactionResult.value = response.value
+    if (response) {
+      transactionResult.value = response
       resetForm()
     }
   } catch (err: any) {

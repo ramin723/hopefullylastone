@@ -1,23 +1,31 @@
 // server/api/transactions/index.post.ts
+import { defineEventHandler, getRequestHeader, createError, readBody } from 'h3'
 import { prisma } from '../../utils/db'
-import { verify } from '../../utils/jwt'
+import { requireAuth } from '../../utils/auth'
 import { CreateTxSchema } from '../../validators/transactions'
 import { computeCommission } from '../../utils/commission'
 
 export default defineEventHandler(async (event) => {
-  // 1) Auth: require vendor
-  const auth = getHeader(event, 'authorization') || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
-  if (!token) throw createError({ statusCode: 401, statusMessage: 'Missing token' })
+  try {
+    // فقط فروشنده اجازه دارد
+    const auth = await requireAuth(event, ['VENDOR'])
 
-  const payload = verify<{ userId: number; role: string }>(token)
-  if (payload.role !== 'VENDOR') {
-    throw createError({ statusCode: 403, statusMessage: 'Only VENDOR can create transactions' })
-  }
-
-  const vendor = await prisma.vendor.findUnique({ where: { userId: payload.userId } })
+  // از userId → vendor پیدا کن
+  const vendor = await prisma.vendor.findUnique({ where: { userId: auth.id } })
   if (!vendor || vendor.status !== 'ACTIVE') {
     throw createError({ statusCode: 403, statusMessage: 'Vendor not active' })
+  }
+
+  // آیدم‌پوتنسی: کلید از هدر
+  const idem = getRequestHeader(event, 'x-idempotency-key')?.trim()
+  if (idem) {
+    const exists = await prisma.transaction.findFirst({
+      where: { idempotencyKey: idem, vendorId: vendor.id }
+    })
+    if (exists) {
+      // می‌تونی 200 با همان رکورد بدهی یا 409 برگردانی. ترجیح من برگرداندن رکورد است:
+      return { id: exists.id, idempotent: true }
+    }
   }
 
   // 2) Validate body
@@ -50,6 +58,7 @@ export default defineEventHandler(async (event) => {
       amountEligible,
       note,
       status: 'PENDING',
+      idempotencyKey: idem || null,
       commission: {
         create: {
           rateMechanic: 0.03,
@@ -76,5 +85,18 @@ export default defineEventHandler(async (event) => {
       }
     },
     createdAt: tx.createdAt
+  }
+
+  } catch (error: any) {
+    console.error('[TRANSACTIONS API] Error:', error)
+    
+    if (error.statusCode) {
+      throw error
+    }
+    
+    throw createError({ 
+      statusCode: 500, 
+      statusMessage: 'Internal server error while creating transaction' 
+    })
   }
 })

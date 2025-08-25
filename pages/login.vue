@@ -24,7 +24,6 @@
       </div>
 
       <AppAlert v-if="errorMsg" :message="errorMsg" variant="error" />
-      <AppAlert v-if="successMsg" :message="successMsg" variant="success" />
 
       <AppButton 
         type="submit" 
@@ -40,59 +39,47 @@
 </template>
 
 <script setup lang="ts">
-// تست با useAuth واقعی
+definePageMeta({ auth: false })
+
 const router = useRouter()
-const { login } = useAuth()
+
+// استفاده از state سراسری برای نگه داشتن کاربر
+const user = useState<any>('auth:user', () => null)
+const hydrated = useState<boolean>('auth:hydrated', () => false)
 
 const phone = ref('')
 const password = ref('')
-const loading = ref(false)
 const errorMsg = ref<string | null>(null)
-const successMsg = ref<string | null>(null)
+const loading = ref(false)
+const csrf = useState<string | null>('csrf', () => null)
 
-async function onSubmit(e: Event) {
-  // کمربند ایمنی دوم: حتی اگر .prevent حذف شد، باز هم مانع سابمیت پیش‌فرض می‌شویم
+async function onSubmit(e?: Event) {
   e?.preventDefault?.()
-
   errorMsg.value = null
-  successMsg.value = null
-  
-  if (!phone.value || !password.value) {
-    errorMsg.value = 'شماره و رمز را وارد کنید'
-    return
-  }
-
+  loading.value = true
   try {
-    loading.value = true
-    
-    console.log('تلاش برای لاگین:', { phone: phone.value, password: password.value })
-    
-    // استفاده از useAuth واقعی
-    const response = await login(phone.value, password.value)
-    
-    successMsg.value = `لاگین موفق! نام: ${response.user.fullName}, نقش: ${response.user.role}`
-    console.log('لاگین موفق:', response)
-    
-    // ریدایرکت بر اساس نقش کاربر
-    if (response.user.role === 'MECHANIC') {
-      await router.push('/mechanic')
-    } else if (response.user.role === 'VENDOR') {
-      await router.push('/vendor/pos')
-    } else {
-      await router.push('/')
+    // اگر هنوز csrf نگرفتیم، همین‌جا بگیریم (race-safe)
+    if (!csrf.value) {
+      const r = await $fetch('/api/auth/csrf')
+      csrf.value = (r as any).csrf
     }
-    
+
+    const res = await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: { phone: phone.value, password: password.value },
+      headers: csrf.value ? { 'x-csrf-token': csrf.value } : undefined, // ← محکم‌کاری
+    }) as any
+
+    // ادامه‌ی منطق قبلی…
+    user.value = res.user || null
+    hydrated.value = true
+    if (!user.value) { errorMsg.value = 'عدم دسترسی: لطفاً دوباره تلاش کنید'; return }
+    if (user.value.role === 'VENDOR') await router.replace('/vendor/pos')
+    else if (user.value.role === 'MECHANIC') await router.replace('/mechanic')
+    else if (user.value.role === 'ADMIN') await router.replace('/admin/settlements')
+    else await router.replace('/')
   } catch (err: any) {
-    console.error('خطا در لاگین:', err)
-    if (err.data?.statusMessage) {
-      errorMsg.value = err.data.statusMessage
-    } else if (err.statusMessage) {
-      errorMsg.value = err.statusMessage
-    } else if (err.message) {
-      errorMsg.value = err.message
-    } else {
-      errorMsg.value = 'خطای نامشخص در ورود'
-    }
+    errorMsg.value = err?.data?.statusMessage || 'ورود ناموفق بود'
   } finally {
     loading.value = false
   }

@@ -1,20 +1,12 @@
 // server/api/settlements/[id]/mark-paid.post.ts
+import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { prisma } from '~/server/utils/db'
-import { verify } from '~/server/utils/jwt'
+import { requireAuth } from '~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
   try {
-    // احراز هویت
-    const auth = getHeader(event, 'authorization') || ''
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
-    if (!token) throw createError({ statusCode: 401, statusMessage: 'Missing token' })
-    
-    const payload = verify<{ userId: number; role: string }>(token)
-    
-    // بررسی نقش کاربر - فقط ADMIN
-    if (payload.role !== 'ADMIN') {
-      throw createError({ statusCode: 403, statusMessage: 'Access denied: Only ADMIN can mark settlements as paid' })
-    }
+    // احراز هویت و بررسی نقش - فقط ADMIN
+    const auth = await requireAuth(event, ['ADMIN'])
 
     const id = Number(getRouterParam(event, 'id'))
     if (!id || isNaN(id)) {
@@ -45,8 +37,21 @@ export default defineEventHandler(async (event) => {
       }
     }) as any
 
+    // تغییر وضعیت تراکنش‌های مرتبط به SETTLED
+    await prisma.transaction.updateMany({
+      where: {
+        id: {
+          in: (await prisma.settlementItem.findMany({
+            where: { settlementId: id },
+            select: { transactionId: true }
+          })).map(item => item.transactionId)
+        }
+      },
+      data: { status: 'SETTLED' }
+    })
+
     // لاگ موفقیت
-    console.log(`Settlement ${id} marked as paid by admin ${payload.userId}`)
+    console.log(`[MARK PAID API] Settlement ${id} marked as paid by admin ${auth.id}`)
 
     return { 
       ok: true, 

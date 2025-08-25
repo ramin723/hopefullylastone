@@ -1,52 +1,37 @@
 // composables/useAuth.ts
+export function useAuth() {
+  const user = useState<any>('auth:user', () => null)
+  const hydrated = useState<boolean>('auth:hydrated', () => false)
+  const hydrating = useState<Promise<void> | null>('auth:hydrating')
 
-type AuthUser = {
-  id: number
-  role: 'ADMIN' | 'VENDOR' | 'MECHANIC'
-  fullName: string
-  phone: string
-} | null
-
-export const useAuth = () => {
-  const isClient = typeof window !== 'undefined'
-
-  // استفاده از useState از Nuxt
-  const token = useState<string | null>(
-    'auth_token',
-    () => (isClient ? localStorage.getItem('auth_token') : null)
-  )
-
-  const user = useState<AuthUser>('auth_user', () => null)
-
-  function setToken(t: string | null) {
-    token.value = t
-    if (isClient) {
-      if (t) localStorage.setItem('auth_token', t)
-      else localStorage.removeItem('auth_token')
+  // فراخوانی دستی: وقتی بعد از login می‌خوای دوباره /me را بزنی
+  const ensureAuth = async () => {
+    console.log('[AUTH] ensureAuth called, hydrated:', hydrated.value, 'user:', !!user.value)
+    if (hydrated.value && user.value) return user.value
+    if (hydrating.value) {
+      console.log('[AUTH] Already hydrating, waiting...')
+      await hydrating.value
+      return user.value
     }
+    // شروع یک هیدریت جدید
+    console.log('[AUTH] Starting new hydration')
+    hydrating.value = (async () => {
+      try {
+        console.log('[AUTH] Calling /api/auth/me')
+        const res = await $fetch('/api/auth/me')
+        user.value = (res as any).user
+        console.log('[AUTH] ensureAuth ok:', user.value?.id, user.value?.role)
+      } catch (error) {
+        console.error('[AUTH] ensureAuth error:', error)
+        user.value = null
+      } finally {
+        hydrated.value = true
+        console.log('[AUTH] Hydration completed')
+      }
+    })()
+    await hydrating.value
+    return user.value
   }
 
-  async function login(phone: string, password: string) {
-    // استفاده از $fetch از Nuxt با type assertion ساده
-    const res = await $fetch('/api/auth/login', {
-      method: 'POST',
-      body: { phone, password }
-    }) as any
-
-    setToken(res.token)
-    user.value = res.user
-    return res
-  }
-
-  function logout() {
-    setToken(null)
-    user.value = null
-  }
-
-  function authHeaders() {
-    if (!token.value) return {}
-    return { Authorization: `Bearer ${token.value}` }
-  }
-
-  return { token, user, login, logout, authHeaders }
+  return { user, hydrated, ensureAuth }
 }

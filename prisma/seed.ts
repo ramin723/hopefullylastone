@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
+  console.log('🌱 Starting database seed...');
+
   // 1) Admin
   const adminPhone = '09000000000';
   const adminPass = 'admin123';
@@ -20,6 +22,7 @@ async function main() {
       role: UserRole.ADMIN,
     },
   });
+  console.log('✅ Admin created:', admin.fullName);
 
   // 2) Vendor + User
   const vendorPhone = '09120000001';
@@ -37,7 +40,7 @@ async function main() {
     },
   });
 
-  await prisma.vendor.upsert({
+  const vendor = await prisma.vendor.upsert({
     where: { userId: vendorUser.id },
     update: {},
     create: {
@@ -45,8 +48,10 @@ async function main() {
       storeName: 'فروشگاه نمونه',
       city: 'تهران',
       percentDefault: 0.05, // 5% کل کمیسیون
+      status: 'ACTIVE',
     },
   });
+  console.log('✅ Vendor created:', vendor.storeName);
 
   // 3) Mechanic + User
   const mechPhone = '09120000002';
@@ -64,7 +69,7 @@ async function main() {
     },
   });
 
-  await prisma.mechanic.upsert({
+  const mechanic = await prisma.mechanic.upsert({
     where: { userId: mechUser.id },
     update: {},
     create: {
@@ -73,13 +78,113 @@ async function main() {
       qrActive: true,
     },
   });
+  console.log('✅ Mechanic created:', mechanic.code);
 
-  console.log('✅ Seed done: admin/vendor/mechanic created.');
+  // 4) ایجاد تراکنش‌های نمونه برای تست
+  console.log('📊 Creating sample transactions...');
+  
+  // تراکنش‌های مختلف با مبالغ مختلف
+  const sampleTransactions = [
+    {
+      amountTotal: 5000000,      // 5 میلیون تومان
+      amountEligible: 4000000,   // 4 میلیون مشمول
+      customerPhone: '09130000001',
+      note: 'تعمیر موتور سیکلت'
+    },
+    {
+      amountTotal: 15000000,     // 15 میلیون تومان
+      amountEligible: 12000000,  // 12 میلیون مشمول
+      customerPhone: '09130000002',
+      note: 'تعمیر خودرو'
+    },
+    {
+      amountTotal: 8000000,      // 8 میلیون تومان
+      amountEligible: 6000000,   // 6 میلیون مشمول
+      customerPhone: '09130000003',
+      note: 'سرویس دوره‌ای'
+    },
+    {
+      amountTotal: 25000000,     // 25 میلیون تومان
+      amountEligible: 20000000,  // 20 میلیون مشمول
+      customerPhone: '09130000004',
+      note: 'تعمیر اساسی موتور'
+    }
+  ];
+
+  for (let i = 0; i < sampleTransactions.length; i++) {
+    const tx = sampleTransactions[i]!;
+    
+    // محاسبه کمیسیون
+    const mechanicAmount = Math.floor(tx.amountEligible * 0.03); // 3%
+    const platformAmount = Math.floor(tx.amountEligible * 0.02); // 2%
+
+    const transaction = await prisma.transaction.create({
+      data: {
+        vendorId: vendor.id,
+        mechanicId: mechanic.id,
+        customerPhone: tx.customerPhone,
+        amountTotal: tx.amountTotal,
+        amountEligible: tx.amountEligible,
+        note: tx.note,
+        status: 'PENDING',
+        commission: {
+          create: {
+            rateMechanic: 0.03,
+            ratePlatform: 0.02,
+            mechanicAmount: mechanicAmount,
+            platformAmount: platformAmount
+          }
+        }
+      }
+    });
+
+    console.log(`✅ Transaction ${i + 1} created: ${tx.amountTotal.toLocaleString()} تومان`);
+  }
+
+  // 5) ایجاد Settlement نمونه برای تست
+  console.log('💰 Creating sample settlement...');
+  
+  const settlement = await prisma.settlement.create({
+    data: {
+      vendorId: vendor.id,
+      periodFrom: new Date('2024-01-01'),
+      periodTo: new Date('2024-01-31'),
+      totalAmountEligible: 42000000, // 42 میلیون
+      totalMechanicAmount: 1260000,  // 1.26 میلیون (3%)
+      totalPlatformAmount: 840000,    // 840 هزار (2%)
+      status: 'OPEN',
+      items: {
+        create: [
+          {
+            transactionId: 1,
+            mechanicAmount: 120000,    // 3% از 4 میلیون
+            platformAmount: 80000      // 2% از 4 میلیون
+          },
+          {
+            transactionId: 2,
+            mechanicAmount: 360000,    // 3% از 12 میلیون
+            platformAmount: 240000     // 2% از 12 میلیون
+          }
+        ]
+      }
+    }
+  });
+
+  console.log('✅ Settlement created:', settlement.id);
+
+  console.log('\n🎉 Database seed completed successfully!');
+  console.log('\n📋 Test Data Summary:');
+  console.log(`   👤 Admin: ${adminPhone} / ${adminPass}`);
+  console.log(`   🏪 Vendor: ${vendorPhone} / ${vendorPass}`);
+  console.log(`   🔧 Mechanic: ${mechPhone} / ${mechPass}`);
+  console.log(`   💰 Transactions: ${sampleTransactions.length} created`);
+  console.log(`   📊 Settlement: 1 created (OPEN status)`);
+  console.log('\n🚀 Ready to test Guardrails & Constraints!');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Seed failed:', e);
     process.exit(1);
   })
   .finally(async () => {

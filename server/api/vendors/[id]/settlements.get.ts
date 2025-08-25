@@ -1,33 +1,28 @@
 // server/api/vendors/[id]/settlements.get.ts
+import { defineEventHandler, createError, getQuery, getRouterParam } from 'h3'
 import { prisma } from '~/server/utils/db'
-import { verify } from '~/server/utils/jwt'
+import { requireAuth } from '~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
   try {
-    // احراز هویت
-    const auth = getHeader(event, 'authorization') || ''
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
-    if (!token) throw createError({ statusCode: 401, statusMessage: 'Missing token' })
-    
-    const payload = verify<{ userId: number; role: string }>(token)
+    // احراز هویت و بررسی نقش
+    const auth = await requireAuth(event, ['ADMIN', 'VENDOR'])
 
     const vendorIdParam = Number(getRouterParam(event, 'id'))
     if (!vendorIdParam || isNaN(vendorIdParam)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid vendor ID' })
     }
 
-    // بررسی دسترسی
-    if (payload.role === 'VENDOR') {
+    // بررسی دسترسی VENDOR
+    if (auth.role === 'VENDOR') {
       const vendor = await prisma.vendor.findUnique({ 
-        where: { userId: payload.userId },
+        where: { userId: auth.id },
         select: { id: true }
       })
       
       if (!vendor || vendor.id !== vendorIdParam) {
         throw createError({ statusCode: 403, statusMessage: 'Access denied: You can only view your own settlements' })
       }
-    } else if (payload.role !== 'ADMIN') {
-      throw createError({ statusCode: 403, statusMessage: 'Access denied: Invalid role' })
     }
 
     // بررسی وجود Vendor
@@ -73,23 +68,10 @@ export default defineEventHandler(async (event) => {
         vendor: { select: { storeName: true } },
         _count: { select: { items: true } }
       }
-    }) as Array<{
-      id: number
-      vendorId: number
-      periodFrom: Date
-      periodTo: Date
-      totalAmountEligible: number
-      totalMechanicAmount: number
-      totalPlatformAmount: number
-      status: string
-      createdAt: Date
-      paidAt: Date | null
-      vendor: { storeName: string }
-      _count: { items: number }
-    }>
+    })
 
     // لاگ موفقیت
-    console.log(`Settlements retrieved for vendor ${vendorExists.storeName}: ${settlements.length} records`)
+    console.log(`[VENDOR SETTLEMENTS API] Settlements retrieved for vendor ${vendorExists.storeName}: ${settlements.length} records`)
 
     return settlements.map((s) => ({
       id: s.id,
@@ -104,13 +86,12 @@ export default defineEventHandler(async (event) => {
       },
       status: s.status,
       createdAt: s.createdAt,
-      paidAt: s.paidAt ?? null,
+      paidAt: s.paidAt,
       itemCount: s._count.items
     }))
 
   } catch (error: any) {
-    // لاگ خطا
-    console.error('Error retrieving settlements:', error)
+    console.error('[VENDOR SETTLEMENTS API] Error:', error)
     
     if (error.statusCode) {
       throw error
