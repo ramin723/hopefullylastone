@@ -2,6 +2,8 @@
 import { defineEventHandler, createError, getQuery, getRouterParam } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { requireAuth } from '~/server/utils/auth'
+import { decimalToNumber } from '~/server/utils/decimal'
+import logger from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -71,7 +73,7 @@ export default defineEventHandler(async (event) => {
     })
 
     // لاگ موفقیت
-    console.log(`[VENDOR SETTLEMENTS API] Settlements retrieved for vendor ${vendorExists.storeName}: ${settlements.length} records`)
+    logger.info({ vendorId: vendorExists.id, count: settlements.length }, '[VENDOR SETTLEMENTS API] Settlements retrieved')
 
     return settlements.map((s) => ({
       id: s.id,
@@ -80,9 +82,9 @@ export default defineEventHandler(async (event) => {
       periodFrom: s.periodFrom,
       periodTo: s.periodTo,
       totals: {
-        eligible: s.totalAmountEligible,
-        mechanic: s.totalMechanicAmount,
-        platform: s.totalPlatformAmount
+        eligible: decimalToNumber(s.totalAmountEligible),
+        mechanic: decimalToNumber(s.totalMechanicAmount),
+        platform: decimalToNumber(s.totalPlatformAmount)
       },
       status: s.status,
       createdAt: s.createdAt,
@@ -91,7 +93,7 @@ export default defineEventHandler(async (event) => {
     }))
 
   } catch (error: any) {
-    console.error('[VENDOR SETTLEMENTS API] Error:', error)
+    logger.error({ err: error, vendorId: getRouterParam(event, 'id') }, '[VENDOR SETTLEMENTS API] Error')
     
     if (error.statusCode) {
       throw error

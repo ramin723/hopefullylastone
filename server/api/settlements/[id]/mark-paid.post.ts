@@ -2,6 +2,7 @@
 import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { requireAuth } from '~/server/utils/auth'
+import logger from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -28,30 +29,30 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Settlement is already marked as paid' })
     }
 
-    // بروزرسانی Settlement
-    const updatedSettlement = await prisma.settlement.update({
-      where: { id },
-      data: { 
-        status: 'PAID', 
-        paidAt: new Date() 
-      }
-    }) as any
+    // عملیات اتمی: بروزرسانی Settlement و تغییر وضعیت تراکنش‌ها
+    const updatedSettlement = await prisma.$transaction(async (tx) => {
+      const updated = await tx.settlement.update({
+        where: { id },
+        data: { status: 'PAID', paidAt: new Date() }
+      })
 
-    // تغییر وضعیت تراکنش‌های مرتبط به SETTLED
-    await prisma.transaction.updateMany({
-      where: {
-        id: {
-          in: (await prisma.settlementItem.findMany({
-            where: { settlementId: id },
-            select: { transactionId: true }
-          })).map(item => item.transactionId)
-        }
-      },
-      data: { status: 'SETTLED' }
+      const txIds = (await tx.settlementItem.findMany({
+        where: { settlementId: id },
+        select: { transactionId: true }
+      })).map(i => i.transactionId)
+
+      if (txIds.length) {
+        await tx.transaction.updateMany({
+          where: { id: { in: txIds } },
+          data: { status: 'SETTLED' }
+        })
+      }
+
+      return updated as any
     })
 
     // لاگ موفقیت
-    console.log(`[MARK PAID API] Settlement ${id} marked as paid by admin ${auth.id}`)
+    logger.info({ id, adminId: auth.id }, '[MARK PAID API] Settlement marked as paid')
 
     return { 
       ok: true, 
@@ -62,7 +63,7 @@ export default defineEventHandler(async (event) => {
 
   } catch (error: any) {
     // لاگ خطا
-    console.error('Error marking settlement as paid:', error)
+    logger.error({ err: error, id: getRouterParam(event, 'id') }, 'Error marking settlement as paid')
     
     if (error.statusCode) {
       throw error

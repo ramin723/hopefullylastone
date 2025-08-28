@@ -3,6 +3,7 @@ import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { requireAuth } from '~/server/utils/auth'
 import { decimalToNumber } from '~/server/utils/decimal'
+import logger from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -74,7 +75,8 @@ export default defineEventHandler(async (event) => {
     }
 
     // لاگ موفقیت
-    console.log(`[SETTLEMENT DETAIL API] Settlement ${id} retrieved for user ${auth.id} with role ${auth.role}`)
+    logger.debug({ id, periodFrom: settlement.periodFrom, periodTo: settlement.periodTo }, '[SETTLEMENT DETAIL API] Period dates')
+    logger.info({ id, userId: auth.id, role: auth.role }, '[SETTLEMENT DETAIL API] Retrieved')
 
     // بازگرداندن داده‌ها - Decimal-safe
     return {
@@ -119,7 +121,8 @@ export default defineEventHandler(async (event) => {
 
   } catch (error: any) {
     // لاگ خطا
-    console.error('Error retrieving settlement details:', error)
+    const sid = Number(getRouterParam(event, 'id'))
+    logger.error({ err: error, id: sid }, 'Error retrieving settlement details')
     
     if (error.statusCode) {
       throw error

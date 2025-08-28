@@ -4,6 +4,8 @@ import { prisma } from '../../utils/db'
 import { requireAuth } from '../../utils/auth'
 import { CreateSettlementSchema } from '../../validators/settlements'
 import { decimalToNumber } from '../../utils/decimal'
+import logger from '../../utils/logger'
+import { Prisma } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -20,7 +22,7 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    const { vendorId, from, to } = parsed.data
+    const { vendorId, mechanicId, from, to } = parsed.data
 
     // بررسی وجود Vendor
     const vendor = await prisma.vendor.findUnique({
@@ -34,22 +36,22 @@ export default defineEventHandler(async (event) => {
 
     const fromDate = new Date(from)
     const toDate = new Date(to)
+    // نرمال‌سازی شروع/پایان روز در زمان محلی
+    fromDate.setHours(0, 0, 0, 0)
     toDate.setHours(23, 59, 59, 999) // inclusive
 
     // تراکنش‌های قابل تسویه - فقط آنهایی که در Settlement دیگری نیستند
+    const excludedIds = (
+      await prisma.settlementItem.findMany({ select: { transactionId: true } })
+    ).map(item => item.transactionId)
+
     const txs = await prisma.transaction.findMany({
       where: {
         vendorId,
         status: 'PENDING',
         createdAt: { gte: fromDate, lte: toDate },
-        // تراکنش‌هایی که در Settlement دیگری نیستند
-        id: {
-          notIn: (
-            await prisma.settlementItem.findMany({
-              select: { transactionId: true }
-            })
-          ).map(item => item.transactionId)
-        }
+        id: { notIn: excludedIds },
+        ...(mechanicId ? { mechanicId } : {})
       },
       include: { commission: true }
     })
@@ -63,7 +65,8 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    console.log(`[SETTLEMENT CREATE] Found ${txs.length} available transactions for settlement`)
+    logger.debug({ rawFrom: from, rawTo: to, from: fromDate.toISOString(), to: toDate.toISOString(), vendorId, mechanicId }, '[SETTLEMENT CREATE] Input dates normalized')
+    logger.info({ vendorId, mechanicId, count: txs.length }, '[SETTLEMENT CREATE] Found available transactions')
 
     // محاسبه مجموع‌ها
     const totalAmountEligible = txs.reduce<number>((sum, t) => {
@@ -90,8 +93,8 @@ export default defineEventHandler(async (event) => {
           items: {
             create: txs.map((t) => ({
               transactionId: t.id,
-              mechanicAmount: t.commission?.mechanicAmount ?? 0,
-              platformAmount: t.commission?.platformAmount ?? 0
+              mechanicAmount: t.commission?.mechanicAmount ?? new Prisma.Decimal(0),
+              platformAmount: t.commission?.platformAmount ?? new Prisma.Decimal(0)
             }))
           }
         },
@@ -107,7 +110,7 @@ export default defineEventHandler(async (event) => {
     })
 
     // لاگ موفقیت
-    console.log(`Settlement created successfully: ID=${result.id}, Vendor=${vendor.storeName}, Transactions=${txs.length}`)
+    logger.info({ id: result.id, vendor: vendor.storeName, count: txs.length }, 'Settlement created successfully')
 
     return {
       created: true,
@@ -121,13 +124,21 @@ export default defineEventHandler(async (event) => {
         mechanic: totalMechanicAmount,
         platform: totalPlatformAmount
       },
+      items: txs.map(t => ({
+        id: t.id,
+        createdAt: t.createdAt,
+        mechanicId: t.mechanicId,
+        amountEligible: decimalToNumber(t.amountEligible),
+        mechanicAmount: decimalToNumber(t.commission?.mechanicAmount),
+        platformAmount: decimalToNumber(t.commission?.platformAmount)
+      })),
       count: txs.length,
       message: `Settlement created successfully for ${vendor.storeName}`
     }
 
   } catch (error: any) {
     // لاگ خطا
-    console.error('Error creating settlement:', error)
+    logger.error({ err: error }, 'Error creating settlement')
     
     if (error.statusCode) {
       throw error

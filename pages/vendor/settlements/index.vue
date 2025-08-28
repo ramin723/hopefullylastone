@@ -127,6 +127,7 @@
 </template>
 
 <script setup lang="ts">
+import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput } from '~/utils/date'
 definePageMeta({
   auth: true,
   layout: 'authenticated'
@@ -134,6 +135,8 @@ definePageMeta({
 
 const { user } = useAuth()
 const { get } = useApi()
+
+import { formatJalali } from '~/utils/date'
 
 // State
 const loading = ref(false)
@@ -152,7 +155,7 @@ const vendorName = computed(() => user.value?.fullName || 'نامشخص')
 
 // Methods
 function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString('fa-IR')
+  return formatJalali(date)
 }
 
 function formatNumber(value: any): string {
@@ -167,8 +170,8 @@ async function loadSettlements() {
   
   try {
     const params = new URLSearchParams()
-    if (filters.from) params.append('from', filters.from)
-    if (filters.to) params.append('to', filters.to)
+    if (filters.from) params.append('from', toISOFromJalaliInput(filters.from))
+    if (filters.to) params.append('to', toISOEndOfDayFromJalaliInput(filters.to))
     if (filters.status) params.append('status', filters.status)
     
     // دریافت vendor ID از user context

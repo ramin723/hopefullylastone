@@ -242,10 +242,10 @@
             </div>
           </div>
 
-          <div class="flex justify-end space-x-3 rtl:space-x-reverse">
+          <div class="flex justify-end space-x-3 rtl:space-x-reverse items-center">
             <button
               type="button"
-              @click="resetForm"
+              @click="() => resetForm()"
               class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               پاک کردن
@@ -258,6 +258,9 @@
               <span v-if="submitting">ثبت فروش...</span>
               <span v-else>ثبت فروش</span>
             </button>
+            <span v-if="submitMessage.text" :class="submitMessage.type === 'success' ? 'text-green-600' : 'text-red-600'" class="text-sm">
+              {{ submitMessage.text }}
+            </span>
           </div>
         </form>
 
@@ -311,6 +314,7 @@ import QrScanner from '~/components/QrScanner.vue'
 const route = useRoute()
 const { user } = useAuth()
 const { post } = useApi()
+import { useToast } from '~/composables/useToast'
 
 // Types
 type Item = { name: string; qty: number; unitPrice: number; eligible: boolean }
@@ -333,6 +337,7 @@ const form = ref({
 
 const submitting = ref<boolean>(false)
 const error = ref<string>('')
+const submitMessage = ref<{ text: string; type: 'success' | 'error' | '' }>({ text: '', type: '' })
 const transactionResult = ref<any>(null)
 
 // Computed
@@ -406,13 +411,15 @@ async function validateMechanicCode() {
 
   try {
     const { data: response } = await useFetch(`/api/referral/resolve/${encodeURIComponent(mechanicCode.value)}`)
-    
-    if (response.value) {
+    const res: any = response.value
+    if (res && res.ok === true && typeof res.mechanicId === 'number') {
       mechanic.value = {
-        id: response.value.mechanicId,
-        name: response.value.mechanicName,
+        id: res.mechanicId as number,
+        name: mechanicCode.value,
         code: mechanicCode.value
       }
+    } else {
+      throw new Error('invalid code')
     }
   } catch (err: any) {
     console.error('Mechanic resolve error:', err)
@@ -448,6 +455,7 @@ async function handleSubmit() {
   
   submitting.value = true
   error.value = ''
+  submitMessage.value = { text: '', type: '' }
 
   try {
     const response = await post('/api/transactions', {
@@ -460,20 +468,25 @@ async function handleSubmit() {
 
     if (response) {
       transactionResult.value = response
-      resetForm()
+      useToast().show('تراکنش با موفقیت ثبت شد', 'success')
+      submitMessage.value = { text: 'ثبت موفق', type: 'success' }
+      resetForm(true)
     }
   } catch (err: any) {
-    error.value = 'خطا در ثبت فروش: ' + (err.data?.statusMessage || err.message || 'خطای نامشخص')
+    const msg = 'خطا در ثبت فروش: ' + (err.data?.statusMessage || err.message || 'خطای نامشخص')
+    error.value = msg
+    submitMessage.value = { text: msg, type: 'error' }
+    useToast().show(msg, 'error')
   } finally {
     submitting.value = false
   }
 }
 
 // Reset form
-function resetForm() {
+function resetForm(preserveInputs: boolean = false) {
   items.value = [{ name: '', qty: 1, unitPrice: 0, eligible: true }]
   form.value = {
-    customerPhone: '',
+    customerPhone: preserveInputs ? form.value.customerPhone : form.value.customerPhone,
     note: ''
   }
   transactionResult.value = null
@@ -485,4 +498,6 @@ function resetForm() {
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('fa-IR').format(amount) + ' تومان'
 }
+
+
 </script>

@@ -145,6 +145,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatJalali } from '~/utils/date'
+
 const route = useRoute()
 const config = useRuntimeConfig() // اضافه کردن runtime config
 
@@ -213,7 +215,7 @@ const settlementId = computed(() => route.params.id as string)
 
 // Methods
 function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString('fa-IR')
+  return formatJalali(date)
 }
 
 function formatNumber(value: any): string {

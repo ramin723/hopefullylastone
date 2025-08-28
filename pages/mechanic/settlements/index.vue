@@ -149,6 +149,7 @@
 </template>
 
 <script setup lang="ts">
+import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput } from '~/utils/date'
 // 1) کلید صفحه
 definePageMeta({
   auth: true,
@@ -191,8 +192,8 @@ const { data: settlements, pending: loading, error, refresh } = await useFetch<M
   () => {
     const params = new URLSearchParams()
     if (filters.value.status) params.append('status', filters.value.status)
-    if (filters.value.from) params.append('from', filters.value.from)
-    if (filters.value.to) params.append('to', filters.value.to)
+    if (filters.value.from) params.append('from', toISOFromJalaliInput(filters.value.from))
+    if (filters.value.to) params.append('to', toISOEndOfDayFromJalaliInput(filters.value.to))
     
     return `/api/mechanic/settlements?${params.toString()}`
   },
@@ -204,8 +205,10 @@ const { data: settlements, pending: loading, error, refresh } = await useFetch<M
 )
 
 // Methods
+import { formatJalali } from '~/utils/date'
+
 function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString('fa-IR')
+  return formatJalali(date)
 }
 
 function formatNumber(value: any): string {

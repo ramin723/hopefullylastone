@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs'
 import { generateAccessToken, generateRefreshToken, hashRefreshToken, getRefreshTokenExpiry } from '../../utils/tokens'
 import { createRequestLogger } from '../../utils/logger'
 import { randomUUID } from 'crypto'
+import { rateLimitComposite, buildLoginKey, maskPhone } from '../../utils/rateLimiter'
+import { appendResponseHeader } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const requestId = randomUUID()
@@ -17,6 +19,42 @@ export default defineEventHandler(async (event) => {
     logger.error('Login failed: missing phone or password')
     throw createError({ statusCode: 400, statusMessage: 'phone & password required' })
   }
+
+  // ---- Rate Limit (IP + phone) BEFORE password check ----
+  const key = buildLoginKey(event, body.phone)
+  const { allowed, remaining, resetAt } = rateLimitComposite({
+    key,
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 5
+  })
+
+  if (!allowed) {
+    const retryAfterSec = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000))
+    // استاندارد: Retry-After برای کلاینت‌ها/ریورس‌پراکسی‌ها
+    appendResponseHeader(event, 'Retry-After', retryAfterSec)
+
+    logger.warn('[AUTH] Login rate-limited', {
+      requestId,
+      phone: maskPhone(body.phone),
+      remaining,
+      resetAt
+    })
+
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too Many Requests',
+      message: 'Too many login attempts. Please try again later.'
+    })
+  }
+
+  // در لاگ سطح info: باقی‌مانده برای مشاهده رفتار
+  logger.info('[AUTH] Login attempt allowed', {
+    requestId,
+    phone: maskPhone(body.phone),
+    remaining,
+    resetAt
+  })
+  // -------------------------------------------------------
 
   const user = await prisma.user.findUnique({ where: { phone: body.phone } })
   if (!user) {

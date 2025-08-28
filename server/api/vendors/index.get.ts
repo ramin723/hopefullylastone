@@ -2,6 +2,7 @@
 import { defineEventHandler, createError } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { requireAuth } from '~/server/utils/auth'
+import logger from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
     })
 
     // لاگ موفقیت
-    console.log(`[ADMIN VENDORS API] Vendors retrieved: ${vendors.length} records`)
+    logger.info({ count: vendors.length }, '[ADMIN VENDORS API] Vendors retrieved')
 
     return {
       items: vendors.map(v => ({
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   } catch (error: any) {
     // لاگ خطا
-    console.error('[ADMIN VENDORS API] Error:', error)
+    logger.error({ err: error }, '[ADMIN VENDORS API] Error')
     
     if (error.statusCode) {
       throw error

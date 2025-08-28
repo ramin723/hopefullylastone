@@ -10,8 +10,10 @@ const BUCKET = new Map<string, Entry[]>()
 
 // قوانین خاص مسیرها:
 const RULES: { test: (path: string) => boolean; limit: number; windowMs: number }[] = [
-  { test: p => p.startsWith('/api/auth/login'),      limit: 5,  windowMs: 60_000 },   // 5/min/IP
-  { test: p => p.startsWith('/api/transactions'),    limit: 20, windowMs: 60_000 },   // 20/min/user/IP
+  { test: p => p.startsWith('/api/auth/login'),                 limit: 5,  windowMs: 60_000 }, // 5/min/IP
+  { test: p => p.startsWith('/api/transactions'),               limit: 20, windowMs: 60_000 }, // 20/min/user/IP
+  { test: p => p.startsWith('/api/settlements') && p.endsWith('/mark-paid'), limit: 10, windowMs: 60_000 }, // 10/min
+  { test: p => p === '/api/settlements' && true,                limit: 10, windowMs: 60_000 }, // create/list throttle
 ]
 // قانون پیش‌فرض (اگر لازم داشتی):
 const DEFAULT = { limit: 120, windowMs: 60_000 }
@@ -35,7 +37,10 @@ export default defineEventHandler((event) => {
   const routeKey =
     path.startsWith('/api/transactions') ? '/api/transactions' :
     path.startsWith('/api/auth/login')   ? '/api/auth/login'   :
+    (path.startsWith('/api/settlements') && path.endsWith('/mark-paid')) ? '/api/settlements/mark-paid' :
+    (path === '/api/settlements' ? '/api/settlements' :
     path
+    )
 
   const key = `${routeKey}::ip:${ip}::user:${userId ?? '-'}`
 

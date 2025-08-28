@@ -3,6 +3,7 @@ import { defineEventHandler, createError, getQuery } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { requireAuth } from '~/server/utils/auth'
 import { decimalToNumber } from '~/server/utils/decimal'
+import logger from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -49,31 +50,40 @@ export default defineEventHandler(async (event) => {
       skip,
       take: pageSize,
       include: {
-        vendor: { select: { storeName: true } }
+        vendor: { select: { storeName: true } },
+        items: { select: { transaction: { select: { mechanicId: true } } } }
       }
     })
 
     // لاگ موفقیت
-    console.log(`[ADMIN SETTLEMENTS API] Settlements retrieved: ${settlements.length}/${count} records, page ${page}`)
+    logger.info({ page, pageSize, count, returned: settlements.length }, '[ADMIN SETTLEMENTS API] Retrieved')
 
     return {
-      items: settlements.map((s) => ({
-        id: s.id,
-        vendor: { 
-          id: s.vendorId, 
-          name: s.vendor.storeName
-        },
-        periodFrom: s.periodFrom,
-        periodTo: s.periodTo,
-        totals: {
-          eligible: decimalToNumber(s.totalAmountEligible),
-          mechanic: decimalToNumber(s.totalMechanicAmount),
-          platform: decimalToNumber(s.totalPlatformAmount)
-        },
-        status: s.status,
-        createdAt: s.createdAt,
-        paidAt: s.paidAt
-      })),
+      items: settlements.map((s: any) => {
+        const mechanicIds = new Set<number>()
+        for (const it of s.items as any[]) {
+          if (it?.transaction?.mechanicId) mechanicIds.add(it.transaction.mechanicId)
+        }
+        const uniqueMechanicId = mechanicIds.size === 1 ? Array.from(mechanicIds)[0] : null
+        return {
+          id: s.id,
+          vendor: { 
+            id: s.vendorId, 
+            name: s.vendor.storeName
+          },
+          periodFrom: s.periodFrom,
+          periodTo: s.periodTo,
+          totals: {
+            eligible: decimalToNumber(s.totalAmountEligible),
+            mechanic: decimalToNumber(s.totalMechanicAmount),
+            platform: decimalToNumber(s.totalPlatformAmount)
+          },
+          uniqueMechanicId,
+          status: s.status,
+          createdAt: s.createdAt,
+          paidAt: s.paidAt
+        }
+      }),
       count,
       page,
       pageSize
@@ -81,7 +91,7 @@ export default defineEventHandler(async (event) => {
 
   } catch (error: any) {
     // لاگ خطا
-    console.error('[ADMIN SETTLEMENTS API] Error:', error)
+    logger.error({ err: error }, '[ADMIN SETTLEMENTS API] Error')
     
     if (error.statusCode) {
       throw error

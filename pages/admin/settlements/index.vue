@@ -52,6 +52,21 @@
           </button>
         </div>
       </div>
+      <!-- دکمه‌های سریع تاریخ -->
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          @click="quickRange(7)"
+          class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          هفته گذشته
+        </button>
+        <button
+          @click="quickRange(30)"
+          class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          ماه گذشته
+        </button>
+      </div>
     </div>
 
     <!-- دکمه ساخت تسویه جدید -->
@@ -89,7 +104,7 @@
             </tr>
             <tr v-else-if="error" class="bg-red-50">
               <td colspan="9" class="px-6 py-4 text-center text-red-600">
-                خطا در بارگذاری: {{ error }}
+                خطا در بارگذاری
               </td>
             </tr>
             <tr v-else-if="!settlementsData?.items?.length" class="bg-gray-50">
@@ -102,7 +117,12 @@
                 {{ settlement.id }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ settlement.vendor.name }}
+                <div class="flex items-center gap-2">
+                  <span>{{ settlement.vendor.name }}</span>
+                  <span v-if="settlement.uniqueMechanicId" class="px-2 py-0.5 text-xs rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    M#{{ settlement.uniqueMechanicId }}
+                  </span>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ formatDate(settlement.periodFrom) }} تا {{ formatDate(settlement.periodTo) }}
@@ -173,6 +193,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '~/composables/useToast'
+import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput, formatJalali } from '~/utils/date'
 definePageMeta({ layout: 'authenticated' })
 
 // تعریف interface برای Settlement
@@ -189,6 +211,7 @@ interface Settlement {
     mechanic: number
     platform: number
   }
+  uniqueMechanicId?: number | null
   status: 'OPEN' | 'PAID'
   createdAt: string
   paidAt: string | null
@@ -211,10 +234,19 @@ const filters = ref({
   pageSize: 10
 })
 
+// پارامترهای تبدیل‌شده به ISO برای API
+const queryParams = computed(() => ({
+  from: filters.value.from ? toISOFromJalaliInput(filters.value.from) : undefined,
+  to: filters.value.to ? toISOEndOfDayFromJalaliInput(filters.value.to) : undefined,
+  status: filters.value.status || undefined,
+  page: filters.value.page,
+  pageSize: filters.value.pageSize
+}))
+
 // دریافت داده‌ها
 const { data, pending, error, refresh } = await useFetch<SettlementsResponse>('/api/settlements', {
-  query: filters,
-  key: computed(() => `settlements-${JSON.stringify(filters.value)}`)
+  query: queryParams,
+  key: computed(() => `settlements-${queryParams.value.from}-${queryParams.value.to}-${queryParams.value.status}-${queryParams.value.page}-${queryParams.value.pageSize}`)
 })
 
 // computed برای دسترسی آسان‌تر به داده‌ها
@@ -224,6 +256,27 @@ const settlementsData = computed(() => data.value)
 function applyFilters() {
   filters.value.page = 1
   refresh()
+}
+
+watch(error, (e) => {
+  if (e) {
+    useToast().show('خطا در بارگذاری فهرست تسویه‌ها', 'error')
+  }
+})
+
+function quickRange(days: number) {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - days)
+  
+  // تبدیل به تاریخ شمسی
+  const { $dayjs } = useNuxtApp()
+  const startJalali = ($dayjs as any)(start).format('jYYYY-jMM-jDD')
+  const endJalali = ($dayjs as any)(end).format('jYYYY-jMM-jDD')
+  
+  filters.value.from = startJalali
+  filters.value.to = endJalali
+  applyFilters()
 }
 
 // تغییر صفحه
@@ -237,7 +290,7 @@ function changePage(newPage: number) {
 // فرمت تاریخ
 function formatDate(date: string | Date) {
   if (!date) return '-'
-  return new Date(date).toLocaleDateString('fa-IR')
+  return formatJalali(date)
 }
 
 // فرمت اعداد

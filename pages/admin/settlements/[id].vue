@@ -11,7 +11,7 @@
           to="/admin/settlements"
           class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
         >
-          بازگشت به لیست
+          بازگشت به فهرست
         </NuxtLink>
       </div>
     </div>
@@ -99,10 +99,13 @@
           <button
             @click="markAsPaid"
             :disabled="markingPaid"
-            class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
           >
-            <span v-if="markingPaid">در حال پرداخت...</span>
-            <span v-else>علامت‌گذاری به عنوان پرداخت شده</span>
+            <svg v-if="markingPaid" class="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            <span>{{ markingPaid ? 'در حال پرداخت...' : 'علامت‌گذاری به عنوان پرداخت شده' }}</span>
           </button>
         </div>
       </div>
@@ -170,7 +173,8 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'authenticated' })
+import { useToast } from '~/composables/useToast'
+import { formatJalali } from '~/utils/date'
 
 // تعریف interface برای Settlement Item
 interface SettlementItem {
@@ -240,10 +244,11 @@ async function markAsPaid() {
     
     // refresh صفحه
     await refresh()
+    useToast().show('تسویه پرداخت شد', 'success')
     
   } catch (err: any) {
-    console.error('Error marking settlement as paid:', err)
-    alert('خطا در علامت‌گذاری به عنوان پرداخت شده')
+    console.warn('Error marking settlement as paid:', err)
+    useToast().show(err?.data?.statusMessage || 'خطا در علامت‌گذاری به عنوان پرداخت شده', 'error')
   } finally {
     markingPaid.value = false
   }
@@ -252,7 +257,7 @@ async function markAsPaid() {
 // فرمت تاریخ
 function formatDate(date: string | Date) {
   if (!date) return '-'
-  return new Date(date).toLocaleDateString('fa-IR')
+  return formatJalali(date)
 }
 
 // فرمت اعداد

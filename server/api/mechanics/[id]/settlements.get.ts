@@ -3,6 +3,7 @@ import { defineEventHandler, createError, getQuery, getRouterParam } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { requireAuth } from '~/server/utils/auth'
 import { decimalToNumber } from '~/server/utils/decimal'
+import logger from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -130,12 +131,13 @@ export default defineEventHandler(async (event) => {
     })
 
     // لاگ موفقیت
-    console.log(`[MECHANIC SETTLEMENTS API] Settlements retrieved for mechanic ${mechanicExists.user.fullName}: ${settlementsWithTotals.length} records`)
+    logger.info({ mechanicId: mechanicIdParam, count: settlementsWithTotals.length }, '[MECHANIC SETTLEMENTS API] Retrieved')
 
     return settlementsWithTotals
 
   } catch (error: any) {
-    console.error('[MECHANIC SETTLEMENTS API] Error:', error)
+    const mechanicIdParam = Number(getRouterParam(event, 'id'))
+    logger.error({ err: error, mechanicId: mechanicIdParam }, '[MECHANIC SETTLEMENTS API] Error')
     
     if (error.statusCode) {
       throw error
