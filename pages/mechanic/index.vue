@@ -1,443 +1,317 @@
 <template>
-  <main class="p-6 space-y-6">
-    <header class="space-y-2">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-xl font-bold">داشبورد مکانیک</h1>
-          <p v-if="user">سلام، {{ user.fullName }}</p>
+  <div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex justify-between items-start">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">تراکنش‌های مکانیک</h1>
+            <p class="mt-2 text-xl text-gray-600">سلام، {{ mechanicName }}</p>
+          </div>
+          <NuxtLink 
+            to="/mechanic/settlements"
+            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+          >
+            <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+            تسویه‌ها
+          </NuxtLink>
         </div>
       </div>
-    </header>
 
-    <!-- تب‌بندی -->
-    <div class="border-b border-gray-200">
-      <nav class="-mb-px flex space-x-8 rtl:space-x-reverse">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          @click="() => selectTab(tab.id)"
-          :class="[
-            'py-2 px-1 border-b-2 font-medium text-sm',
-            tab.id === activeTab
-              ? 'border-indigo-500 text-indigo-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          ]"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
-    </div>
-
-    <!-- محتوای تب تسویه‌ها -->
-    <div v-if="activeTab === 'settlements'" class="space-y-6">
-      <!-- فیلترهای تسویه -->
-      <div class="bg-white shadow rounded-lg p-6">
+      <!-- Filters -->
+      <div class="bg-white shadow rounded-lg p-6 mb-6">
         <h2 class="text-lg font-medium text-gray-900 mb-4">فیلترها</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت</label>
-            <select 
-              v-model="settlementFilters.status" 
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">همه</option>
-              <option value="OPEN">باز</option>
-              <option value="PAID">پرداخت شده</option>
-            </select>
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">از تاریخ</label>
-            <input 
-              type="date" 
-              v-model="settlementFilters.from"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            <JalaliDatePicker 
+              v-model="filters.from" 
+              placeholder="1403-06-05 (شمسی)"
             />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">تا تاریخ</label>
+            <JalaliDatePicker 
+              v-model="filters.to" 
+              placeholder="1403-06-05 (شمسی)"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت</label>
+            <select 
+              v-model="filters.status" 
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">همه</option>
+              <option value="PENDING">در انتظار</option>
+              <option value="SETTLED">تسویه‌شده</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">صفحه</label>
             <input 
-              type="date" 
-              v-model="settlementFilters.to"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
+              v-model.number="filters.page" 
+              type="number" 
+              min="1"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div class="flex items-end">
             <button 
-              @click="() => refreshSettlements()"
-              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              @click="applyFilters"
+              :disabled="loading"
+              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              اعمال فیلتر
+              <span v-if="loading">در حال بارگذاری...</span>
+              <span v-else>اعمال فیلتر</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- لیست تسویه‌ها -->
-      <div v-if="settlementsLoading" class="text-center py-12">
-        <div class="text-gray-500">در حال بارگذاری...</div>
-      </div>
-
-      <div v-else-if="settlementsError" class="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div class="text-red-800">{{ settlementsError }}</div>
-      </div>
-
-      <div v-else-if="settlementsData && settlementsData.length" class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">تسویه‌ها</h3>
-          <p class="text-sm text-gray-500 mt-1">تعداد: {{ settlementsData.length }}</p>
+      <!-- Loading State -->
+      <div v-if="loading" class="space-y-4">
+        <div v-for="i in 6" :key="i" class="bg-white shadow rounded-lg p-6 animate-pulse">
+          <div class="flex space-x-4">
+            <div class="rounded-full bg-gray-200 h-12 w-12"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+          </div>
         </div>
-        
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">شناسه</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">فروشگاه</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">دوره</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">مبلغ کل مشمول</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">سهم من</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">وضعیت</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاریخ ایجاد</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">عملیات</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="settlement in settlementsData" :key="settlement.id" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ settlement.id }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div class="text-sm font-medium text-gray-900">{{ settlement.vendorName }}</div>
-                    <div class="text-sm text-gray-500">{{ settlement.vendorCity || 'نامشخص' }}</div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ formatDate(settlement.periodFrom) }} تا {{ formatDate(settlement.periodTo) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ formatNumber(settlement.totals.eligible) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
-                  {{ formatNumber(settlement.totals.mechanic) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span 
-                    :class="[
-                      'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                      settlement.status === 'PAID' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    ]"
-                  >
-                    {{ settlement.status === 'PAID' ? 'پرداخت شده' : 'باز' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ formatDate(settlement.createdAt) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <NuxtLink 
-                    :to="`/mechanic/settlements/${settlement.id}`"
-                    class="text-indigo-600 hover:text-indigo-900"
-                  >
-                    مشاهده جزئیات
-                  </NuxtLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div class="text-red-800 text-center">
+          <p class="text-lg font-medium mb-2">خطا در بارگذاری</p>
+          <p>{{ error }}</p>
+        </div>
+      </div>
+
+      <!-- Transactions List -->
+      <div v-else-if="transactions && transactions.length > 0" class="space-y-4">
+        <!-- Summary -->
+        <div class="bg-white shadow rounded-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">تعداد تراکنش‌ها</dt>
+              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ transactions.length }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">جمع سهم مکانیک</dt>
+              <dd class="mt-1 text-2xl font-semibold text-indigo-600">{{ formatCurrency(totalMechanic) }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">صفحه فعلی</dt>
+              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ filters.page }}</dd>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div 
+            v-for="transaction in transactions" 
+            :key="transaction.id" 
+            class="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow duration-200"
+          >
+            <!-- Header Row -->
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <div class="text-sm text-gray-500">شماره تراکنش</div>
+                <div class="font-semibold text-gray-900">#{{ transaction.id }}</div>
+              </div>
+              <div class="text-left">
+                <span 
+                  :class="[
+                    'px-2 py-1 text-xs font-semibold rounded-full',
+                    transaction.status === 'SETTLED' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  ]"
+                >
+                  {{ transaction.status === 'SETTLED' ? 'تسویه‌شده' : 'در انتظار' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Date Row -->
+            <div class="mb-4">
+              <div class="text-sm text-gray-500">تاریخ ایجاد</div>
+              <div class="font-medium text-gray-900">{{ formatDate(transaction.createdAt) }}</div>
+            </div>
+
+            <!-- Amounts Row -->
+            <div class="space-y-2 mb-4">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-500">مبلغ کل:</span>
+                <span class="font-medium">{{ formatCurrency(transaction.amountTotal) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-500">مبلغ مشمول:</span>
+                <span class="font-medium">{{ formatCurrency(transaction.amountEligible) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-500">سهم مکانیک:</span>
+                <span class="font-bold text-indigo-600">{{ formatCurrency(transaction.mechanicAmount) }}</span>
+              </div>
+            </div>
+
+            <!-- Vendor & Customer Row -->
+            <div class="space-y-2 mb-4">
+              <div>
+                <div class="text-sm text-gray-500">فروشگاه</div>
+                <div class="font-medium text-gray-900">{{ transaction.vendor }}</div>
+              </div>
+              <div v-if="transaction.customerPhone">
+                <div class="text-sm text-gray-500">مشتری</div>
+                <div class="font-medium text-gray-900">{{ transaction.customerPhone }}</div>
+              </div>
+              <div v-if="transaction.note">
+                <div class="text-sm text-gray-500">یادداشت</div>
+                <div class="text-sm text-gray-700">{{ transaction.note }}</div>
+              </div>
+            </div>
+
+            <!-- QR Code (Optional) -->
+            <div v-if="transaction.mechanicCode" class="mb-4">
+              <div class="text-sm text-gray-500 mb-2">کد مکانیک</div>
+              <div class="bg-gray-100 p-2 rounded text-center font-mono text-sm">{{ transaction.mechanicCode }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="hasMorePages" class="flex justify-center space-x-2 rtl:space-x-reverse">
+          <button 
+            @click="previousPage"
+            :disabled="filters.page <= 1"
+            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            قبلی
+          </button>
+          <span class="px-4 py-2 text-sm text-gray-700">صفحه {{ filters.page }}</span>
+          <button 
+            @click="nextPage"
+            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            بعدی
+          </button>
         </div>
       </div>
 
       <!-- Empty State -->
       <div v-else class="bg-white shadow rounded-lg p-12 text-center">
         <div class="text-gray-500">
-          <p class="text-lg mb-2">هیچ تسویه‌ای یافت نشد</p>
-          <p class="text-sm">هنوز تسویه‌ای برای شما ایجاد نشده است.</p>
+          <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+          </svg>
+          <p class="text-lg mb-2">هیچ تراکنشی یافت نشد</p>
+          <p class="text-sm">برای این فیلترها تراکنشی وجود ندارد.</p>
         </div>
       </div>
     </div>
-
-    <!-- محتوای تب تراکنش‌ها -->
-    <div v-if="activeTab === 'transactions'" class="space-y-6">
-      <section class="space-y-3">
-        <!-- فیلترهای سریع تاریخ -->
-        <div class="flex gap-2 items-center flex-wrap">
-          <span class="text-sm font-medium text-gray-700">فیلترهای سریع:</span>
-          <button 
-            @click="setDateRange('today')" 
-            class="px-3 py-1 text-xs border rounded hover:bg-gray-50"
-          >
-            امروز
-          </button>
-          <button 
-            @click="setDateRange('last3days')" 
-            class="px-3 py-1 text-xs border rounded hover:bg-gray-50"
-          >
-            ۳ روز گذشته
-          </button>
-          <button 
-            @click="setDateRange('lastWeek')" 
-            class="px-3 py-1 text-xs border rounded hover:bg-gray-50"
-          >
-            هفته گذشته
-          </button>
-          <button 
-            @click="clearDateRange" 
-            class="px-3 py-1 text-xs border rounded hover:bg-gray-50 text-red-600"
-          >
-            پاک کردن
-          </button>
-        </div>
-
-        <!-- فیلترهای دستی -->
-        <div class="flex gap-3 items-end flex-wrap">
-          <div>
-            <label class="block text-sm mb-1">از تاریخ</label>
-            <input v-model="q.from" type="date" class="border px-2 py-1 rounded" />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">تا تاریخ</label>
-            <input v-model="q.to" type="date" class="border px-2 py-1 rounded" />
-          </div>
-          <AppSelect
-            v-model="q.status"
-            label="وضعیت"
-            placeholder="انتخاب کنید"
-            :options="statusOptions"
-          />
-          <button @click="load" class="border px-3 py-1 rounded">اعمال فیلتر</button>
-        </div>
-      </section>
-
-      <section v-if="loading">در حال بارگذاری…</section>
-      <section v-else-if="errorMsg" class="text-red-600">{{ errorMsg }}</section>
-
-      <section v-else-if="data" class="space-y-4">
-        <div class="border rounded p-4">
-          <p>تعداد تراکنش‌ها: <b>{{ data.count }}</b></p>
-          <p>جمع سهم مکانیک: <b>{{ data.totalMechanic.toLocaleString() }}</b></p>
-        </div>
-
-        <AppTable :columns="tableColumns">
-          <template #body>
-            <tr v-for="(it, i) in data.items" :key="it.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ it.id }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ new Date(it.createdAt).toLocaleString() }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ it.vendor }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ it.status }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ it.amountTotal.toLocaleString() }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ it.amountEligible.toLocaleString() }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{{ it.mechanicAmount.toLocaleString() }}</td>
-            </tr>
-            <tr v-if="!data.items.length">
-              <td class="px-6 py-4 text-center text-gray-500" colspan="7">موردی یافت نشد.</td>
-            </tr>
-          </template>
-        </AppTable>
-      </section>
-    </div>
-  </main>
+  </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({
-  auth: true
+  auth: true,
+  layout: 'authenticated'
 })
 
-const router = useRouter()
-const { user, hydrated } = useAuth()
-const { get } = useApi()
+const { user } = useAuth()
 
-onMounted(() => {
-  if (hydrated.value && !user.value) return router.push('/login')
-})
-
-// تعریف تب‌ها
-const tabs = [
-  { id: 'settlements' as const, label: 'تسویه‌ها' },
-  { id: 'transactions' as const, label: 'تراکنش‌ها' }
-]
-
-// state تب فعال
-const activeTab = useState<'settlements'|'transactions'>('mechTab', () => 'settlements')
-
-// فیلترهای تسویه
-const settlementFilters = ref({
-  status: '',
-  from: '',
-  to: ''
-})
-
-// فیلترهای تراکنش
-const q = reactive<{ from?: string; to?: string; status?: string }>({})
+// State
 const loading = ref(false)
-const errorMsg = ref<string | null>(null)
-const data = ref<{ totalMechanic: number; count: number; items: any[] } | null>(null)
+const error = ref('')
+const transactions = ref<any[]>([])
+const totalMechanic = ref(0)
+const hasMorePages = ref(false)
 
-// تعریف ستون‌های جدول
-const tableColumns = [
-  { key: 'id', label: '#' },
-  { key: 'createdAt', label: 'تاریخ' },
-  { key: 'vendor', label: 'فروشگاه' },
-  { key: 'status', label: 'وضعیت' },
-  { key: 'amountTotal', label: 'مبلغ کل' },
-  { key: 'amountEligible', label: 'مبلغ مشمول' },
-  { key: 'mechanicAmount', label: 'سهم مکانیک' }
-]
-
-// گزینه‌های وضعیت
-const statusOptions = [
-  { value: '', label: 'همه' },
-  { value: 'PENDING', label: 'در انتظار' },
-  { value: 'SETTLED', label: 'تسویه‌شده' },
-  { value: 'CANCELLED', label: 'لغو' }
-]
-
-// انتخاب تب
-function selectTab(tabId: 'settlements' | 'transactions') {
-  activeTab.value = tabId
-  localStorage.setItem('mech_tab', tabId)
-}
-
-// بارگذاری تب از localStorage
-onMounted(() => {
-  const savedTab = localStorage.getItem('mech_tab')
-  if (savedTab && (savedTab === 'settlements' || savedTab === 'transactions')) {
-    activeTab.value = savedTab
-  }
+// Filters
+const filters = reactive({
+  from: '',
+  to: '',
+  status: '',
+  page: 1,
+  pageSize: 20
 })
 
-// واکشی تسویه‌ها
-const { data: settlementsData, pending: settlementsLoading, error: settlementsError, refresh: refreshSettlements } = await useFetch(
+// Computed
+const mechanicName = computed(() => user.value?.fullName || 'نامشخص')
+
+// Fetch transactions with stable key
+const { data, pending, error: fetchError, refresh } = await useFetch(
   () => {
     const params = new URLSearchParams()
-    if (settlementFilters.value.status) params.append('status', settlementFilters.value.status)
-    if (settlementFilters.value.from) params.append('from', settlementFilters.value.from)
-    if (settlementFilters.value.to) params.append('to', settlementFilters.value.to)
+    if (filters.from) params.append('from', toISOFromJalaliInput(filters.from) || '')
+    if (filters.to) params.append('to', toISOEndOfDayFromJalaliInput(filters.to) || '')
+    if (filters.status) params.append('status', filters.status)
+    params.append('page', filters.page.toString())
+    params.append('pageSize', filters.pageSize.toString())
     
-    return `/api/mechanic/settlements?${params.toString()}`
+    return `/api/mechanic/transactions?${params.toString()}`
   },
   {
-    key: () => `mechanic-settlements-${settlementFilters.value.status}-${settlementFilters.value.from}-${settlementFilters.value.to}`,
-    default: () => [],
+    key: () => `mech-tx-${filters.status}-${filters.from}-${filters.to}-${filters.page}-${filters.pageSize}`,
+    default: () => ({ items: [], count: 0, totalMechanic: 0 }),
     watch: false
   }
 )
 
-async function load() {
-  try {
-    console.log('[MECHANIC PAGE] Starting load function')
-    loading.value = true
-    errorMsg.value = null
-    const params = new URLSearchParams()
-    if (q.from) params.set('from', q.from)
-    if (q.to) params.set('to', q.to)
-    if (q.status) params.set('status', q.status)
-    const url = '/api/mechanic/transactions' + (params.toString() ? `?${params.toString()}` : '')
-    console.log('[MECHANIC PAGE] Requesting URL:', url)
-    console.log('[MECHANIC PAGE] Query params:', q)
-    
-    // اضافه کردن timeout و retry logic
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => {
-      console.log('[MECHANIC PAGE] Request timeout, aborting')
-      controller.abort()
-    }, 30000) // 30 ثانیه timeout
-    
-    try {
-      data.value = await get(url, { signal: controller.signal })
-      console.log('[MECHANIC PAGE] Response received:', data.value)
-    } catch (fetchError: any) {
-      if (fetchError.name === 'AbortError') {
-        throw new Error('درخواست به دلیل timeout لغو شد')
-      }
-      throw fetchError
-    } finally {
-      clearTimeout(timeoutId)
-    }
-    
-  } catch (e: any) {
-    console.error('[MECHANIC PAGE] Error in load function:', e)
-    errorMsg.value = e?.data?.statusMessage || e?.message || 'خطا در بارگذاری'
-  } finally {
-    loading.value = false
-    console.log('[MECHANIC PAGE] Load function completed')
+// Watch data changes
+watch(data, (newData) => {
+  if (newData) {
+    transactions.value = newData.items || []
+    totalMechanic.value = newData.totalMechanic || 0
+    hasMorePages.value = (newData.items || []).length === filters.pageSize
   }
-}
+}, { immediate: true })
 
-// توابع فیلترهای سریع تاریخ
-function setDateRange(range: 'today' | 'last3days' | 'lastWeek') {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
-  switch (range) {
-    case 'today':
-      q.from = today.toISOString().split('T')[0]
-      q.to = today.toISOString().split('T')[0]
-      break
-    case 'last3days':
-      const threeDaysAgo = new Date(today)
-      threeDaysAgo.setDate(today.getDate() - 3)
-      q.from = threeDaysAgo.toISOString().split('T')[0]
-      q.to = today.toISOString().split('T')[0]
-      break
-    case 'lastWeek':
-      const lastWeek = new Date(today)
-      lastWeek.setDate(today.getDate() - 7)
-      q.from = lastWeek.toISOString().split('T')[0]
-      q.to = today.toISOString().split('T')[0]
-      break
-  }
-  
-  // بارگذاری خودکار پس از تنظیم تاریخ
-  load()
-}
-
-function clearDateRange() {
-  q.from = undefined
-  q.to = undefined
-  q.status = undefined
-  // بارگذاری خودکار پس از پاک کردن فیلترها
-  load()
-}
-
-// بارگذاری اولیه
-onMounted(() => {
-  if (hydrated.value && user.value) {
-    console.log('[MECHANIC PAGE] onMounted - starting initial load')
-    if (activeTab.value === 'transactions') {
-      load()
-    }
-  }
+// Watch loading and error
+watch(pending, (newPending) => {
+  loading.value = newPending
 })
 
-// watcher برای تغییرات user
-watch([hydrated, user], ([newHydrated, newUser]) => {
-  if (newHydrated && newUser && !loading.value) {
-    console.log('[MECHANIC PAGE] User state changed, starting load')
-    if (activeTab.value === 'transactions') {
-      load()
-    }
-  }
-}, { immediate: false })
-
-// watcher برای تغییر تب
-watch(activeTab, (newTab) => {
-  if (newTab === 'transactions' && !data.value) {
-    load()
-  }
+watch(fetchError, (newError) => {
+  error.value = newError?.data?.statusMessage || newError?.message || 'خطا در بارگذاری'
 })
 
-// توابع کمکی
-import { formatJalali } from '~/utils/date'
+// Methods
+function applyFilters() {
+  filters.page = 1 // Reset to first page
+  refresh()
+}
+
+function nextPage() {
+  filters.page++
+  refresh()
+}
+
+function previousPage() {
+  if (filters.page > 1) {
+    filters.page--
+    refresh()
+  }
+}
+
+// Date utilities
+import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput, formatJalali } from '~/utils/date'
+import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
 
 function formatDate(date: string | Date): string {
   return formatJalali(date)
 }
 
-function formatNumber(value: any): string {
-  if (!value) return '0'
-  const num = typeof value === 'object' && value.toNumber ? value.toNumber() : Number(value)
-  return num.toLocaleString('fa-IR')
+function formatCurrency(amount: any): string {
+  if (!amount) return '0 تومان'
+  const num = typeof amount === 'object' && amount.toNumber ? amount.toNumber() : Number(amount)
+  return num.toLocaleString('fa-IR') + ' تومان'
 }
 </script>

@@ -1,5 +1,5 @@
-// server/api/vendors/[id]/settlements.get.ts
-import { defineEventHandler, createError, getQuery, getRouterParam } from 'h3'
+// server/api/vendors/settlements.get.ts
+import { defineEventHandler, createError, getQuery } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { requireAuth } from '~/server/utils/auth'
 import { decimalToNumber } from '~/server/utils/decimal'
@@ -8,33 +8,16 @@ import logger from '~/server/utils/logger'
 export default defineEventHandler(async (event) => {
   try {
     // احراز هویت و بررسی نقش
-    const auth = await requireAuth(event, ['ADMIN', 'VENDOR'])
+    const auth = await requireAuth(event, ['VENDOR'])
 
-    const vendorIdParam = Number(getRouterParam(event, 'id'))
-    if (!vendorIdParam || isNaN(vendorIdParam)) {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid vendor ID' })
-    }
-
-    // بررسی دسترسی VENDOR
-    if (auth.role === 'VENDOR') {
-      const vendor = await prisma.vendor.findUnique({ 
-        where: { userId: auth.id },
-        select: { id: true }
-      })
-      
-      if (!vendor || vendor.id !== vendorIdParam) {
-        throw createError({ statusCode: 403, statusMessage: 'Access denied: You can only view your own settlements' })
-      }
-    }
-
-    // بررسی وجود Vendor
-    const vendorExists = await prisma.vendor.findUnique({
-      where: { id: vendorIdParam },
+    // دریافت پروفایل فروشگاه
+    const vendor = await prisma.vendor.findUnique({ 
+      where: { userId: auth.id },
       select: { id: true, storeName: true }
     })
     
-    if (!vendorExists) {
-      throw createError({ statusCode: 404, statusMessage: 'Vendor not found' })
+    if (!vendor) {
+      throw createError({ statusCode: 404, statusMessage: 'Vendor profile not found' })
     }
 
     // دریافت query parameters
@@ -46,7 +29,7 @@ export default defineEventHandler(async (event) => {
     const pageSizeNum = Math.min(parseInt(pageSize as string) || 20, 100) // حداکثر 100 آیتم در هر صفحه
     const skip = (pageNum - 1) * pageSizeNum
 
-    const where: any = { vendorId: vendorIdParam }
+    const where: any = { vendorId: vendor.id }
     
     // فیلتر بر اساس status
     if (status && typeof status === 'string' && ['OPEN', 'PAID'].includes(status)) {
@@ -71,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
     // دریافت تعداد کل تسویه‌ها (برای pagination)
     const totalCount = await prisma.settlement.count({ where })
-    logger.info({ vendorId: vendorExists.id, totalCount }, '[VENDOR SETTLEMENTS API] Total count')
+    logger.info({ vendorId: vendor.id, totalCount }, '[VENDOR SETTLEMENTS API] Total count')
 
     // دریافت Settlement ها با pagination
     const settlements = await prisma.settlement.findMany({
@@ -118,7 +101,7 @@ export default defineEventHandler(async (event) => {
 
     // لاگ موفقیت
     logger.info({ 
-      vendorId: vendorExists.id, 
+      vendorId: vendor.id, 
       count: result.count,
       totalCount: result.totalCount,
       totalEligible: result.totalEligible,
@@ -131,7 +114,7 @@ export default defineEventHandler(async (event) => {
     return result
 
   } catch (error: any) {
-    logger.error({ err: error, vendorId: getRouterParam(event, 'id') }, '[VENDOR SETTLEMENTS API] Error')
+    logger.error({ err: error }, '[VENDOR SETTLEMENTS API] Error')
     
     if (error.statusCode) {
       throw error

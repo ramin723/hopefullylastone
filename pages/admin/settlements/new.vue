@@ -56,12 +56,9 @@
         <!-- تاریخ از -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-700 mb-2">تاریخ از</label>
-          <input
+          <JalaliDatePicker
             v-model="form.from"
-            type="text"
-            placeholder="مثال: 1403-06-05"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="1403-06-05 (شمسی)"
             :disabled="pending"
           />
           <p class="text-xs text-gray-500 mt-1">تاریخ شمسی به فرمت 1403-06-05</p>
@@ -69,13 +66,10 @@
 
         <!-- تاریخ تا -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">تاریخ تا</label>
-          <input
+          <label class="text-sm font-medium text-gray-700 mb-2">تاریخ تا</label>
+          <JalaliDatePicker
             v-model="form.to"
-            type="text"
-            placeholder="مثال: 1403-06-05"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="1403-06-05 (شمسی)"
             :disabled="pending"
           />
           <p class="text-xs text-gray-500 mt-1">تاریخ شمسی به فرمت 1403-06-05</p>
@@ -222,7 +216,9 @@
 
 <script setup lang="ts">
 import { useToast } from '~/composables/useToast'
-import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput, formatJalaliWithTime } from '~/utils/date'
+import { formatJalaliWithTime } from '~/utils/date'
+import { normalizeDateInputToISO, normalizeDateInputToISOEndOfDay } from '~/utils/date-ui'
+import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
 
 definePageMeta({ layout: 'authenticated' })
 
@@ -329,8 +325,8 @@ async function submitForm() {
     const { csrfFetch } = useApi()
     
     // تبدیل تاریخ‌های شمسی به ISO
-    const fromISO = toISOFromJalaliInput(form.value.from)
-    const toISO = toISOEndOfDayFromJalaliInput(form.value.to)
+    const fromISO = normalizeDateInputToISO(form.value.from)
+    const toISO = normalizeDateInputToISOEndOfDay(form.value.to)
     
     if (!fromISO || !toISO) {
       error.value = 'تاریخ‌های وارد شده نامعتبر هستند'
@@ -375,9 +371,13 @@ function quickRange(days: number) {
   const end = new Date()
   const start = new Date()
   start.setDate(end.getDate() - days)
-  const toYmd = (d: Date) => d.toISOString().slice(0, 10)
-  form.value.from = toYmd(start)
-  form.value.to = toYmd(end)
+  
+  // تبدیل به تاریخ شمسی (بدون استفاده از $dayjs)
+  const startJalali = `${start.getFullYear() + 621}-${(start.getMonth() + 1).toString().padStart(2, '0')}-${start.getDate().toString().padStart(2, '0')}`
+  const endJalali = `${end.getFullYear() + 621}-${(end.getMonth() + 1).toString().padStart(2, '0')}-${end.getDate().toString().padStart(2, '0')}`
+  
+  form.value.from = startJalali
+  form.value.to = endJalali
 }
 
 async function onPreview() {
@@ -388,8 +388,8 @@ async function onPreview() {
     preview.ready = false
 
     const { get } = useApi()
-    const fromISO = toISOFromJalaliInput(form.value.from)
-    const toISO = toISOEndOfDayFromJalaliInput(form.value.to)
+    const fromISO = normalizeDateInputToISO(form.value.from)
+    const toISO = normalizeDateInputToISOEndOfDay(form.value.to)
     if (!fromISO || !toISO) {
       error.value = 'تاریخ‌های وارد شده نامعتبر هستند'
       useToast().show(error.value, 'error')

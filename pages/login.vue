@@ -74,7 +74,7 @@ async function onSubmit(e?: Event) {
     user.value = res.user || null
     hydrated.value = true
     if (!user.value) { errorMsg.value = 'عدم دسترسی: لطفاً دوباره تلاش کنید'; return }
-    if (user.value.role === 'VENDOR') await router.replace('/vendor/pos')
+    if (user.value.role === 'VENDOR') await router.replace('/vendor')
     else if (user.value.role === 'MECHANIC') await router.replace('/mechanic')
     else if (user.value.role === 'ADMIN') await router.replace('/admin/settlements')
     else await router.replace('/')

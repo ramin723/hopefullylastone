@@ -12,20 +12,18 @@
         <!-- تاریخ از -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">تاریخ از</label>
-          <input
+          <JalaliDatePicker
             v-model="filters.from"
-            type="date"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="1403-06-05 (شمسی)"
           />
         </div>
 
         <!-- تاریخ تا -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">تاریخ تا</label>
-          <input
+          <JalaliDatePicker
             v-model="filters.to"
-            type="date"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="1403-06-05 (شمسی)"
           />
         </div>
 
@@ -194,7 +192,9 @@
 
 <script setup lang="ts">
 import { useToast } from '~/composables/useToast'
-import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput, formatJalali } from '~/utils/date'
+import { formatJalali } from '~/utils/date'
+import { normalizeDateInputToISO, normalizeDateInputToISOEndOfDay } from '~/utils/date-ui'
+import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
 definePageMeta({ layout: 'authenticated' })
 
 // تعریف interface برای Settlement
@@ -236,8 +236,8 @@ const filters = ref({
 
 // پارامترهای تبدیل‌شده به ISO برای API
 const queryParams = computed(() => ({
-  from: filters.value.from ? toISOFromJalaliInput(filters.value.from) : undefined,
-  to: filters.value.to ? toISOEndOfDayFromJalaliInput(filters.value.to) : undefined,
+  from: filters.value.from ? normalizeDateInputToISO(filters.value.from) : undefined,
+  to: filters.value.to ? normalizeDateInputToISOEndOfDay(filters.value.to) : undefined,
   status: filters.value.status || undefined,
   page: filters.value.page,
   pageSize: filters.value.pageSize
@@ -270,9 +270,8 @@ function quickRange(days: number) {
   start.setDate(end.getDate() - days)
   
   // تبدیل به تاریخ شمسی
-  const { $dayjs } = useNuxtApp()
-  const startJalali = ($dayjs as any)(start).format('jYYYY-jMM-jDD')
-  const endJalali = ($dayjs as any)(end).format('jYYYY-jMM-jDD')
+  const startJalali = `${start.getFullYear() + 621}-${(start.getMonth() + 1).toString().padStart(2, '0')}-${start.getDate().toString().padStart(2, '0')}`
+  const endJalali = `${end.getFullYear() + 621}-${(end.getMonth() + 1).toString().padStart(2, '0')}-${end.getDate().toString().padStart(2, '0')}`
   
   filters.value.from = startJalali
   filters.value.to = endJalali

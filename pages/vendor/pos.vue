@@ -1,10 +1,26 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Breadcrumbs -->
+      <Breadcrumbs :items="breadcrumbItems" />
+      
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">ثبت فروش</h1>
-        <p class="mt-2 text-gray-600">فروشگاه: {{ vendorName }}</p>
+        <div class="flex justify-between items-start">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">ثبت فروش</h1>
+            <p class="mt-2 text-gray-600">فروشگاه: {{ vendorName }}</p>
+          </div>
+          <NuxtLink 
+            to="/vendor/settlements"
+            class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+          >
+            <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+            تسویه‌ها
+          </NuxtLink>
+        </div>
       </div>
 
       <!-- Mechanic Code Section -->
@@ -303,9 +319,10 @@
 </template>
 
 <script setup lang="ts">
-// اضافه کردن middleware auth
+// اضافه کردن middleware auth و layout
 definePageMeta({
-  auth: true
+  auth: true,
+  layout: 'authenticated'
 })
 
 // Import QR Scanner component
@@ -342,6 +359,11 @@ const transactionResult = ref<any>(null)
 
 // Computed
 const vendorName = computed(() => user.value?.fullName || 'نامشخص')
+
+const breadcrumbItems = computed(() => [
+  { label: 'خانه فروشگاه', to: '/vendor' },
+  { label: 'ثبت تراکنش' }
+])
 
 const amountTotal = computed(() => {
   return items.value.reduce((sum, item) => {

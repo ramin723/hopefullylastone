@@ -32,8 +32,13 @@ export default defineEventHandler(async (event) => {
 
     // دریافت query parameters
     const query = getQuery(event)
-    const { from, to, status } = query
-    console.log('[MECHANIC API] Query params:', { from, to, status })
+    const { from, to, status, page = '1', pageSize = '20' } = query
+    console.log('[MECHANIC API] Query params:', { from, to, status, page, pageSize })
+
+    // تبدیل pagination parameters
+    const pageNum = parseInt(page as string) || 1
+    const pageSizeNum = Math.min(parseInt(pageSize as string) || 20, 100) // حداکثر 100 آیتم در هر صفحه
+    const skip = (pageNum - 1) * pageSizeNum
 
     // ساخت where clause
     const where: any = { mechanicId: mech.id }
@@ -74,12 +79,18 @@ export default defineEventHandler(async (event) => {
 
     console.log('[MECHANIC API] Where clause:', JSON.stringify(where))
 
-    // دریافت تراکنش‌ها
+    // دریافت تعداد کل تراکنش‌ها (برای pagination)
+    const totalCount = await prisma.transaction.count({ where })
+    console.log('[MECHANIC API] Total count:', totalCount)
+
+    // دریافت تراکنش‌ها با pagination
     let items
     try {
       items = await prisma.transaction.findMany({
         where,
         orderBy: { id: 'desc' },
+        skip,
+        take: pageSizeNum,
         include: {
           commission: true,
           vendor: { select: { id: true, user: { select: { fullName: true } } } },
@@ -106,15 +117,29 @@ export default defineEventHandler(async (event) => {
         createdAt: item.createdAt,
         vendor: item.vendor.user.fullName,
         status: item.status,
-        amountTotal: item.amountTotal,
-        amountEligible: item.amountEligible,
-        mechanicAmount: item.commission?.mechanicAmount || 0
+        amountTotal: decimalToNumber(item.amountTotal),
+        amountEligible: decimalToNumber(item.amountEligible),
+        mechanicAmount: decimalToNumber(item.commission?.mechanicAmount),
+        customerPhone: item.customerPhone,
+        note: item.note,
+        mechanicCode: mech.code
       })),
       count: items.length,
-      totalMechanic
+      totalCount,
+      totalMechanic,
+      page: pageNum,
+      pageSize: pageSizeNum,
+      hasMore: skip + items.length < totalCount
     }
 
-    console.log('[MECHANIC API] Response prepared:', { count: result.count, totalMechanic: result.totalMechanic })
+    console.log('[MECHANIC API] Response prepared:', { 
+      count: result.count, 
+      totalCount: result.totalCount,
+      totalMechanic: result.totalMechanic,
+      page: result.page,
+      pageSize: result.pageSize,
+      hasMore: result.hasMore
+    })
     return result
     
   } catch (error: any) {

@@ -24,6 +24,13 @@ export default defineEventHandler(async (event) => {
 
     // دریافت query parameters
     const q = getQuery(event)
+    const { status, from, to, page = '1', pageSize = '20' } = q
+    
+    // تبدیل pagination parameters
+    const pageNum = parseInt(page as string) || 1
+    const pageSizeNum = Math.min(parseInt(pageSize as string) || 20, 100) // حداکثر 100 آیتم در هر صفحه
+    const skip = (pageNum - 1) * pageSizeNum
+
     const where: any = { 
       items: { 
         some: { 
@@ -33,30 +40,36 @@ export default defineEventHandler(async (event) => {
     }
     
     // فیلتر بر اساس status
-    if (q.status && typeof q.status === 'string' && ['OPEN', 'PAID'].includes(q.status)) {
-      where.status = q.status
+    if (status && typeof status === 'string' && ['OPEN', 'PAID'].includes(status)) {
+      where.status = status
     }
 
     // فیلتر بر اساس بازه تاریخ
-    if (q.from && typeof q.from === 'string') {
-      const fromDate = new Date(q.from)
+    if (from && typeof from === 'string') {
+      const fromDate = new Date(from)
       if (!isNaN(fromDate.getTime())) {
         where.periodFrom = { gte: fromDate }
       }
     }
     
-    if (q.to && typeof q.to === 'string') {
-      const toDate = new Date(q.to)
+    if (to && typeof to === 'string') {
+      const toDate = new Date(to)
       if (!isNaN(toDate.getTime())) {
         toDate.setHours(23, 59, 59, 999)
         where.periodTo = { lte: toDate }
       }
     }
 
+    // دریافت تعداد کل تسویه‌ها (برای pagination)
+    const totalCount = await prisma.settlement.count({ where })
+    console.log(`[MECHANIC SETTLEMENTS API] Total count for mechanic ${mechanic.id}: ${totalCount}`)
+
     // دریافت Settlement ها که شامل تراکنش‌های این مکانیک هستند
     const settlements = await prisma.settlement.findMany({
       where,
       orderBy: { id: 'desc' },
+      skip,
+      take: pageSizeNum,
       include: {
         vendor: { select: { storeName: true, city: true } },
         items: {
@@ -115,10 +128,34 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // لاگ موفقیت
-    console.log(`[MECHANIC SETTLEMENTS API] Settlements retrieved for mechanic ${mechanic.id}: ${settlementsWithTotals.length} records`)
+    // محاسبه مجموع کل
+    const totalEligible = settlementsWithTotals.reduce((sum, s) => sum + s.totals.eligible, 0)
+    const totalMechanic = settlementsWithTotals.reduce((sum, s) => sum + s.totals.mechanic, 0)
 
-    return settlementsWithTotals
+    // ساخت response
+    const result = {
+      items: settlementsWithTotals,
+      count: settlementsWithTotals.length,
+      totalCount,
+      totalEligible,
+      totalMechanic,
+      page: pageNum,
+      pageSize: pageSizeNum,
+      hasMore: skip + settlementsWithTotals.length < totalCount
+    }
+
+    // لاگ موفقیت
+    console.log(`[MECHANIC SETTLEMENTS API] Settlements retrieved for mechanic ${mechanic.id}:`, {
+      count: result.count,
+      totalCount: result.totalCount,
+      totalEligible: result.totalEligible,
+      totalMechanic: result.totalMechanic,
+      page: result.page,
+      pageSize: result.pageSize,
+      hasMore: result.hasMore
+    })
+
+    return result
 
   } catch (error: any) {
     console.error('[MECHANIC SETTLEMENTS API] Error:', error)

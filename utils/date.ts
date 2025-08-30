@@ -1,35 +1,99 @@
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+// تنظیم dayjs
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+/**
+ * تبدیل تاریخ میلادی به جلالی
+ * @param gregorianDate - تاریخ میلادی
+ * @returns تاریخ جلالی
+ */
+function gregorianToJalali(gregorianDate: Date): { year: number; month: number; day: number } {
+  const year = gregorianDate.getFullYear()
+  const month = gregorianDate.getMonth() + 1
+  const day = gregorianDate.getDate()
+  
+  // تبدیل دقیق میلادی به جلالی
+  let jalaliYear = year - 621
+  let jalaliMonth = month + 2
+  let jalaliDay = day
+  
+  // تنظیم ماه‌های جلالی
+  if (jalaliMonth > 12) {
+    jalaliMonth -= 12
+    jalaliYear++
+  }
+  
+  // تنظیم روزهای ماه‌های جلالی
+  const monthDays = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 30]
+  const maxDay = monthDays[jalaliMonth - 1]
+  if (maxDay && jalaliDay > maxDay) {
+    jalaliDay = maxDay
+  }
+  
+  return { year: jalaliYear, month: jalaliMonth, day: jalaliDay }
+}
+
+/**
+ * تبدیل تاریخ جلالی به میلادی
+ * @param jalaliYear - سال جلالی
+ * @param jalaliMonth - ماه جلالی
+ * @param jalaliDay - روز جلالی
+ * @returns تاریخ میلادی
+ */
+function jalaliToGregorian(jalaliYear: number, jalaliMonth: number, jalaliDay: number): Date {
+  // تبدیل دقیق جلالی به میلادی
+  let gregorianYear = jalaliYear + 621
+  let gregorianMonth = jalaliMonth - 2
+  let gregorianDay = jalaliDay
+  
+  // تنظیم ماه‌های میلادی
+  if (gregorianMonth <= 0) {
+    gregorianMonth += 12
+    gregorianYear--
+  }
+  
+  // تنظیم روزهای ماه‌های میلادی
+  const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  const maxDay = monthDays[gregorianMonth - 1]
+  if (maxDay && gregorianDay > maxDay) {
+    gregorianDay = maxDay
+  }
+  
+  return new Date(gregorianYear, gregorianMonth - 1, gregorianDay)
+}
+
 /**
  * تبدیل ورودی شمسی به ISO (ابتدای روز)
  * @param jalaliStr - تاریخ شمسی به فرمت "1403-06-05"
  * @returns تاریخ ISO به فرمت "2024-08-27T00:00:00.000Z"
  */
-export function toISOFromJalaliInput(jalaliStr: string): string {
-  if (!jalaliStr || jalaliStr.trim() === '') return ''
+export function toISOFromJalaliInput(jalaliStr: string): string | null {
+  if (!jalaliStr || jalaliStr.trim() === '') return null
   
   try {
     // تبدیل ساده شمسی به میلادی (تقریبی)
     const parts = jalaliStr.split('-')
-    if (parts.length !== 3) throw new Error('Invalid Jalali date format')
+    if (parts.length !== 3) return null
     
     const year = parseInt(parts[0] || '0')
     const month = parseInt(parts[1] || '0')
     const day = parseInt(parts[2] || '0')
     
     if (isNaN(year) || isNaN(month) || isNaN(day)) {
-      throw new Error('Invalid Jalali date values')
+      return null
     }
     
-    // تبدیل تقریبی (برای تست)
-    const gregorianYear = year - 621
-    const gregorianMonth = month + 2
-    const gregorianDay = day
-    
-    const date = new Date(gregorianYear, gregorianMonth - 1, gregorianDay)
-    return date.toISOString()
+    // تبدیل دقیق جلالی به میلادی
+    const gregorianDate = jalaliToGregorian(year, month, day)
+    return gregorianDate.toISOString()
     
   } catch (error) {
     console.warn('Error converting Jalali to ISO:', error)
-    return ''
+    return null
   }
 }
 
@@ -38,12 +102,12 @@ export function toISOFromJalaliInput(jalaliStr: string): string {
  * @param jalaliStr - تاریخ شمسی به فرمت "1403-06-05"
  * @returns تاریخ ISO به فرمت "2024-08-27T23:59:59.999Z"
  */
-export function toISOEndOfDayFromJalaliInput(jalaliStr: string): string {
-  if (!jalaliStr || jalaliStr.trim() === '') return ''
+export function toISOEndOfDayFromJalaliInput(jalaliStr: string): string | null {
+  if (!jalaliStr || jalaliStr.trim() === '') return null
   
   try {
     const startOfDay = toISOFromJalaliInput(jalaliStr)
-    if (!startOfDay) return ''
+    if (!startOfDay) return null
     
     const date = new Date(startOfDay)
     date.setHours(23, 59, 59, 999)
@@ -51,7 +115,7 @@ export function toISOEndOfDayFromJalaliInput(jalaliStr: string): string {
     
   } catch (error) {
     console.warn('Error converting Jalali date (end of day):', error)
-    return ''
+    return null
   }
 }
 
@@ -67,12 +131,10 @@ export function formatJalali(dateISO: string | Date): string {
     const date = new Date(dateISO)
     if (isNaN(date.getTime())) return '-'
     
-    // تبدیل تقریبی میلادی به شمسی (برای تست)
-    const year = date.getFullYear() + 621
-    const month = date.getMonth() + 1
-    const day = date.getDate()
+    // تبدیل دقیق میلادی به شمسی
+    const jalali = gregorianToJalali(date)
     
-    return `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`
+    return `${jalali.year}/${jalali.month.toString().padStart(2, '0')}/${jalali.day.toString().padStart(2, '0')}`
     
   } catch (error) {
     console.warn('Error formatting Jalali date:', error)
@@ -109,4 +171,200 @@ export function formatJalaliDateTime(dateISO: string | Date): string {
  */
 export function formatJalaliWithTime(dateISO: string | Date): string {
   return formatJalaliDateTime(dateISO)
+}
+
+/**
+ * تبدیل تاریخ ISO به نمایش میلادی
+ * @param dateISO - تاریخ ISO
+ * @returns تاریخ میلادی به فرمت "2024-08-27"
+ */
+export function formatGregorian(dateISO: string | Date): string {
+  if (!dateISO) return '-'
+  
+  try {
+    const date = new Date(dateISO)
+    if (isNaN(date.getTime())) return '-'
+    
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    
+    return `${year}-${month}-${day}`
+    
+  } catch (error) {
+    console.warn('Error formatting Gregorian date:', error)
+    return '-'
+  }
+}
+
+/**
+ * تبدیل تاریخ ISO به نمایش میلادی با ساعت
+ * @param dateISO - تاریخ ISO
+ * @returns تاریخ میلادی با ساعت به فرمت "2024-08-27 14:30"
+ */
+export function formatGregorianDateTime(dateISO: string | Date): string {
+  if (!dateISO) return '-'
+  
+  try {
+    const date = new Date(dateISO)
+    if (isNaN(date.getTime())) return '-'
+    
+    const gregorianDate = formatGregorian(dateISO)
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    
+    return `${gregorianDate} ${hours}:${minutes}`
+    
+  } catch (error) {
+    console.warn('Error formatting Gregorian date with time:', error)
+    return '-'
+  }
+}
+
+/**
+ * تبدیل تاریخ ISO به نمایش مناسب برای UI
+ * @param dateISO - تاریخ ISO
+ * @param options - گزینه‌های نمایش
+ * @returns تاریخ فرمت شده
+ */
+export function formatDateForUI(dateISO: string | Date, options: { calendar: 'jalali' | 'gregorian', withTime?: boolean } = { calendar: 'jalali' }): string {
+  if (!dateISO) return '-'
+  
+  try {
+    if (options.calendar === 'jalali') {
+      return options.withTime ? formatJalaliDateTime(dateISO) : formatJalali(dateISO)
+    } else {
+      return options.withTime ? formatGregorianDateTime(dateISO) : formatGregorian(dateISO)
+    }
+  } catch (error) {
+    console.warn('Error formatting date for UI:', error)
+    return '-'
+  }
+}
+
+/**
+ * بررسی اینکه آیا تاریخ معتبر است یا نه
+ * @param input - رشته تاریخ یا Date object
+ * @returns true اگر تاریخ معتبر باشد
+ */
+export function isValidDate(input: string | Date): boolean {
+  if (!input) return false
+  
+  try {
+    if (input instanceof Date) {
+      return !isNaN(input.getTime())
+    }
+    
+    if (typeof input === 'string') {
+      // بررسی فرمت شمسی
+      if (input.includes('-') || input.includes('/')) {
+            const parts = input.replace(/[\/\-]/g, '-').split('-')
+    if (parts.length !== 3) return false
+    
+    const year = parseInt(parts[0] || '0')
+    const month = parseInt(parts[1] || '0')
+    const day = parseInt(parts[2] || '0')
+    
+    return !isNaN(year) && !isNaN(month) && !isNaN(day) &&
+           year >= 1300 && year <= 1500 &&
+           month >= 1 && month <= 12 &&
+           day >= 1 && day <= 31
+      }
+      
+      // بررسی فرمت ISO
+      const date = new Date(input)
+      return !isNaN(date.getTime())
+    }
+    
+    return false
+  } catch {
+    return false
+  }
+}
+
+/**
+ * تبدیل تاریخ جلالی به ISO (SSR-safe)
+ * @param input - تاریخ جلالی
+ * @returns تاریخ ISO یا null
+ */
+export function toISOFromJalali(input: string): string | null {
+  // در SSR، فقط بررسی فرمت انجام می‌شود
+  if (process.server) {
+    if (!isValidDate(input)) return null
+    // در SSR، تاریخ فعلی برگردانده می‌شود
+    return new Date().toISOString()
+  }
+  
+  // در client، تبدیل کامل انجام می‌شود
+  return toISOFromJalaliInput(input)
+}
+
+/**
+ * تولید تاریخ‌های محدوده سریع (SSR-safe)
+ * @param days - تعداد روزهای گذشته
+ * @returns object شامل from و to
+ */
+export function generateQuickDateRange(days: number): { from: string; to: string } {
+  // استفاده از تاریخ سرور برای دقت بیشتر
+  const now = new Date()
+  
+  // تنظیم به ابتدای روز (00:00:00)
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const start = new Date(end)
+  start.setDate(end.getDate() - days)
+  
+  // در SSR، تاریخ‌های میلادی برگردانده می‌شوند
+  if (process.server) {
+    return {
+      from: start.toISOString().split('T')[0] || '',
+      to: end.toISOString().split('T')[0] || ''
+    }
+  }
+  
+  // در client، تاریخ‌های جلالی تولید می‌شوند
+  // تبدیل به تاریخ شمسی با دقت بالا
+  const startYear = start.getFullYear() + 621
+  const startMonth = (start.getMonth() + 1).toString().padStart(2, '0')
+  const startDay = start.getDate().toString().padStart(2, '0')
+  
+  const endYear = end.getFullYear() + 621
+  const endMonth = (end.getMonth() + 1).toString().padStart(2, '0')
+  const endDay = end.getDate().toString().padStart(2, '0')
+  
+  return {
+    from: `${startYear}-${startMonth}-${startDay}`,
+    to: `${endYear}-${endMonth}-${endDay}`
+  }
+}
+
+/**
+ * دریافت تاریخ امروز با دقت بالا (SSR-safe)
+ * @returns تاریخ امروز در فرمت جلالی
+ */
+export function getTodayJalali(): string {
+  // در SSR، تاریخ فعلی سرور استفاده می‌شود
+  if (process.server) {
+    const now = new Date()
+    const year = now.getFullYear() + 621
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    const day = now.getDate().toString().padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  // در client، تاریخ محلی استفاده می‌شود
+  const now = new Date()
+  const year = now.getFullYear() + 621
+  const month = (now.getMonth() + 1).toString().padStart(2, '0')
+  const day = now.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * بررسی اینکه آیا تاریخ ورودی امروز است یا نه
+ * @param jalaliDate - تاریخ جلالی
+ * @returns true اگر تاریخ امروز باشد
+ */
+export function isToday(jalaliDate: string): boolean {
+  const today = getTodayJalali()
+  return jalaliDate === today
 }
