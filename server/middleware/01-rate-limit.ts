@@ -11,6 +11,8 @@ const BUCKET = new Map<string, Entry[]>()
 // قوانین خاص مسیرها:
 const RULES: { test: (path: string) => boolean; limit: number; windowMs: number }[] = [
   { test: p => p.startsWith('/api/auth/login'),                 limit: 5,  windowMs: 60_000 }, // 5/min/IP
+  { test: p => p.startsWith('/api/auth/otp/request'),           limit: 5,  windowMs: 600_000 }, // 5/10min/IP (OTP request)
+  { test: p => p.startsWith('/api/auth/otp/verify'),            limit: 10, windowMs: 600_000 }, // 10/10min/IP (OTP verify)
   { test: p => p.startsWith('/api/auth/csrf'),                  limit: 60, windowMs: 300_000 }, // 60/5min/IP (CSRF token requests)
   { test: p => p.startsWith('/api/transactions'),               limit: 20, windowMs: 60_000 }, // 20/min/user/IP
   { test: p => p.startsWith('/api/settlements') && p.endsWith('/mark-paid'), limit: 10, windowMs: 60_000 }, // 10/min
@@ -40,6 +42,8 @@ export default defineEventHandler((event) => {
   const routeKey =
     path.startsWith('/api/transactions') ? '/api/transactions' :
     path.startsWith('/api/auth/login')   ? '/api/auth/login'   :
+    path.startsWith('/api/auth/otp/request') ? '/api/auth/otp/request' :
+    path.startsWith('/api/auth/otp/verify') ? '/api/auth/otp/verify' :
     path.startsWith('/api/auth/csrf')    ? '/api/auth/csrf'    :
     (path.startsWith('/api/settlements') && path.endsWith('/mark-paid')) ? '/api/settlements/mark-paid' :
     (path === '/api/settlements') ? '/api/settlements' :

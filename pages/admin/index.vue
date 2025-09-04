@@ -104,12 +104,23 @@
           >
             مدیریت مکانیک‌ها
           </NuxtLink>
-          <NuxtLink
-            to="/admin/mechanics/new"
-            class="block w-full bg-blue-100 text-blue-700 text-center py-2 px-4 rounded-md hover:bg-blue-200 transition-colors"
-          >
-            ایجاد مکانیک جدید
-          </NuxtLink>
+          <div class="grid grid-cols-2 gap-2">
+            <NuxtLink
+              to="/admin/mechanics/new"
+              class="block w-full bg-blue-100 text-blue-700 text-center py-2 px-2 rounded-md hover:bg-blue-200 transition-colors text-sm"
+            >
+              ایجاد فوری
+            </NuxtLink>
+            <NuxtLink
+              to="/admin/invites"
+              class="block w-full bg-green-100 text-green-700 text-center py-2 px-2 rounded-md hover:bg-green-200 transition-colors text-sm"
+            >
+              دعوت مکانیک
+            </NuxtLink>
+          </div>
+          <div class="text-xs text-gray-500 text-center">
+            ایجاد فوری: ادمین ایجاد می‌کند | دعوت: خود مکانیک تکمیل می‌کند
+          </div>
         </div>
       </div>
 
@@ -134,6 +145,33 @@
           <div class="text-sm text-gray-500 text-center">
             سیستم سفارش آنلاین
           </div>
+        </div>
+      </div>
+
+      <!-- فروشگاه‌ها -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+          </div>
+          <h3 class="ml-3 text-lg font-medium text-gray-900">فروشگاه‌ها</h3>
+        </div>
+        <p class="text-gray-600 mb-4">مدیریت فروشگاه‌ها و اطلاعات آن‌ها</p>
+        <div class="space-y-3">
+          <NuxtLink
+            to="/admin/vendors"
+            class="block w-full bg-purple-600 text-white text-center py-2 px-4 rounded-md hover:bg-purple-700 transition-colors"
+          >
+            مدیریت فروشگاه‌ها
+          </NuxtLink>
+          <NuxtLink
+            to="/admin/invites"
+            class="block w-full bg-purple-100 text-purple-700 text-center py-2 px-4 rounded-md hover:bg-purple-200 transition-colors"
+          >
+            مدیریت دعوت‌ها (همه نقش‌ها)
+          </NuxtLink>
         </div>
       </div>
 
@@ -262,7 +300,8 @@
 <script setup lang="ts">
 definePageMeta({ 
   auth: true,
-  layout: 'authenticated'
+  layout: 'authenticated',
+  roles: ['ADMIN']
 })
 
 // State

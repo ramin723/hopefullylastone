@@ -190,7 +190,7 @@ export default defineEventHandler(async (event: any) => {
       }
     } else {
       // Create new mechanic record
-      let code: string | null = null
+      let code: string = ''
       
       if (assignQrNow) {
         // Generate unique code
@@ -218,6 +218,9 @@ export default defineEventHandler(async (event: any) => {
         } while (true)
         
         qrAssigned = true
+      } else {
+        // Generate a temporary code that will be updated later
+        code = `TEMP_${userId}_${Date.now()}`
       }
       
       mechanic = await prisma.mechanic.create({

@@ -72,7 +72,8 @@
 <script setup lang="ts">
 definePageMeta({ 
   layout: 'authenticated',
-  auth: true
+  auth: true,
+  roles: ['VENDOR']
 })
 
 const { user } = useAuth()

@@ -133,7 +133,8 @@
 <script setup lang="ts">
 definePageMeta({
   auth: true,
-  layout: 'authenticated'
+  layout: 'authenticated',
+  roles: ['MECHANIC']
 })
 
 const { user } = useAuth()

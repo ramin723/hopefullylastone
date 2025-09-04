@@ -49,3 +49,59 @@ export const isTokenExpired = (token: string): boolean => {
     return true
   }
 }
+
+export const generateTokens = async (userId: number, event: any) => {
+  const logger = createRequestLogger('token-generator')
+  
+  try {
+    // Get user from database
+    const { prisma } = await import('./db')
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true, phone: true }
+    })
+    
+    if (!user) {
+      throw new Error('User not found')
+    }
+    
+    // Generate tokens
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      role: user.role,
+      phone: user.phone
+    })
+    
+    const refreshToken = generateRefreshToken()
+    const refreshTokenHash = hashRefreshToken(refreshToken)
+    const refreshTokenExpiry = getRefreshTokenExpiry()
+    
+    // Store refresh token
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: refreshTokenHash,
+        expiresAt: refreshTokenExpiry,
+        userAgent: event.node.req.headers['user-agent'] || 'unknown',
+        ip: event.node.req.connection?.remoteAddress || 'unknown'
+      }
+    })
+    
+    logger.info('Tokens generated successfully', {
+      userId: user.id,
+      role: user.role
+    })
+    
+    return {
+      accessToken,
+      refreshToken
+    }
+    
+  } catch (error) {
+    logger.error('Token generation failed', {
+      userId,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+    throw error
+  }
+}

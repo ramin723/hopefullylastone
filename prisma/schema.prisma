@@ -18,6 +18,7 @@ model User {
   Mechanic      Mechanic?
   refreshTokens RefreshToken[]
   Vendor        Vendor?
+  invites       Invite[]
 }
 
 model RefreshToken {
@@ -40,11 +41,13 @@ model Mechanic {
   userId       Int           @unique
   code         String        @unique
   qrActive     Boolean       @default(true)
-  tier         String?
   createdAt    DateTime      @default(now())
+  city         String?
+  specialties  String?
+  tier         MechanicTier?
   user         User          @relation(fields: [userId], references: [id])
-  transactions Transaction[]
   orders       Order[]
+  transactions Transaction[]
 }
 
 model Vendor {
@@ -52,13 +55,24 @@ model Vendor {
   userId         Int           @unique
   storeName      String
   city           String?
-  percentDefault Float         @default(0.05)
+  percentDefault Decimal?      @db.Decimal(5, 2)
   status         String        @default("ACTIVE")
   createdAt      DateTime      @default(now())
+  addressLine    String?
+  banReason      String?
+  bannedAt       DateTime?
+  isActive       Boolean?      @default(true)
+  latitude       Decimal?      @db.Decimal(10, 7)
+  longitude      Decimal?      @db.Decimal(10, 7)
+  postalCode     String?
+  province       String?
+  consumedOrders Order[]
   settlements    Settlement[]
   transactions   Transaction[]
-  consumedOrders Order[]
   user           User          @relation(fields: [userId], references: [id])
+
+  @@index([city])
+  @@index([storeName])
 }
 
 model Transaction {
@@ -133,10 +147,73 @@ model PriceHistory {
   seenAt    DateTime @default(now())
 }
 
+model Order {
+  id                 Int         @id @default(autoincrement())
+  code               String      @unique
+  mechanicId         Int
+  customerPhone      String
+  note               String?
+  status             OrderStatus @default(PENDING)
+  expiresAt          DateTime?
+  createdAt          DateTime    @default(now())
+  consumedAt         DateTime?
+  consumedByVendorId Int?
+  consumedByVendor   Vendor?     @relation(fields: [consumedByVendorId], references: [id])
+  mechanic           Mechanic    @relation(fields: [mechanicId], references: [id])
+  items              OrderItem[]
+}
+
+model OrderItem {
+  id       Int     @id @default(autoincrement())
+  orderId  Int
+  title    String
+  quantity Int     @default(1)
+  note     String?
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OtpCode {
+  id          Int       @id @default(autoincrement())
+  phone       String
+  codeHash    String
+  purpose     String
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  lockedUntil DateTime?
+  isUsed      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([phone, purpose])
+  @@index([expiresAt])
+}
+
+enum MechanicTier {
+  BASIC
+  PRO
+  ELITE
+}
+
 enum UserRole {
   MECHANIC
   VENDOR
   ADMIN
+}
+
+model Invite {
+  id          Int       @id @default(autoincrement())
+  role        UserRole
+  phone       String
+  codeHash    String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+  meta        Json?
+  createdByUser User    @relation(fields: [createdBy], references: [id])
+
+  @@index([phone, role])
+  @@index([expiresAt])
+  @@index([createdBy])
 }
 
 enum OrderStatus {
@@ -144,29 +221,4 @@ enum OrderStatus {
   CONSUMED
   CANCELLED
   EXPIRED
-}
-
-model Order {
-  id           Int          @id @default(autoincrement())
-  code         String       @unique
-  mechanicId   Int
-  customerPhone String
-  note         String?
-  status       OrderStatus  @default(PENDING)
-  expiresAt    DateTime?
-  createdAt    DateTime     @default(now())
-  consumedAt   DateTime?
-  consumedByVendorId Int?
-  mechanic     Mechanic     @relation(fields: [mechanicId], references: [id], onDelete: Restrict)
-  consumedByVendor Vendor?  @relation(fields: [consumedByVendorId], references: [id])
-  items        OrderItem[]
-}
-
-model OrderItem {
-  id       Int    @id @default(autoincrement())
-  orderId  Int
-  title    String
-  quantity Int    @default(1)
-  note     String?
-  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }

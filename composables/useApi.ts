@@ -54,7 +54,8 @@ export function useApi() {
     const result = await $fetch<T>(url, { 
       ...opts, 
       method: 'GET', 
-      headers: withHeaders('GET', opts.headers) 
+      headers: withHeaders('GET', opts.headers),
+      credentials: 'include' // Ensure cookies are sent
     })
     return result
   }

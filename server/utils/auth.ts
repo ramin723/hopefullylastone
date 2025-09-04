@@ -37,3 +37,9 @@ export async function requireAuth(event: any, allowed?: UserRole[]): Promise<Aut
   
   return user
 }
+
+export function requireRole(user: AuthUser, role: UserRole): void {
+  if (user.role !== role) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+}

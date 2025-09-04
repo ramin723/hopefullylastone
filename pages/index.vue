@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ auth: false })
+
 const user = useState<any>('auth:user', () => null)
 const hydrated = useState<boolean>('auth:hydrated', () => false)
 const router = useRouter()
