@@ -76,7 +76,7 @@ async function onSubmit(e?: Event) {
     if (!user.value) { errorMsg.value = 'عدم دسترسی: لطفاً دوباره تلاش کنید'; return }
     if (user.value.role === 'VENDOR') await router.replace('/vendor')
     else if (user.value.role === 'MECHANIC') await router.replace('/mechanic')
-    else if (user.value.role === 'ADMIN') await router.replace('/admin/settlements')
+    else if (user.value.role === 'ADMIN') await router.replace('/admin')
     else await router.replace('/')
   } catch (err: any) {
     errorMsg.value = err?.data?.statusMessage || 'ورود ناموفق بود'

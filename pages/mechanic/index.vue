@@ -3,216 +3,127 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-8">
-        <div class="flex justify-between items-start">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">تراکنش‌های مکانیک</h1>
-            <p class="mt-2 text-xl text-gray-600">سلام، {{ mechanicName }}</p>
-          </div>
-          <NuxtLink 
-            to="/mechanic/settlements"
-            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-          >
-            <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-            </svg>
-            تسویه‌ها
-          </NuxtLink>
+        <div class="text-center">
+          <h1 class="text-4xl font-bold text-gray-900">هاب مکانیک</h1>
+          <p class="mt-2 text-xl text-gray-600">سلام، {{ mechanicName }}</p>
+          <p class="mt-1 text-gray-500">لطفاً یکی از گزینه‌های زیر را انتخاب کنید</p>
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">فیلترها</h2>
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">از تاریخ</label>
-            <JalaliDatePicker 
-              v-model="filters.from" 
-              placeholder="1403-06-05 (شمسی)"
-            />
+      <!-- Main Hub Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Transactions Card -->
+        <NuxtLink 
+          to="/mechanic/transactions"
+          class="group bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+        >
+          <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">تراکنش‌ها</h3>
+            <p class="text-sm text-gray-600">مشاهده و مدیریت تراکنش‌های انجام شده</p>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">تا تاریخ</label>
-            <JalaliDatePicker 
-              v-model="filters.to" 
-              placeholder="1403-06-05 (شمسی)"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت</label>
-            <select 
-              v-model="filters.status" 
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">همه</option>
-              <option value="PENDING">در انتظار</option>
-              <option value="SETTLED">تسویه‌شده</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">صفحه</label>
-            <input 
-              v-model.number="filters.page" 
-              type="number" 
-              min="1"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <div class="flex items-end">
-            <button 
-              @click="applyFilters"
-              :disabled="loading"
-              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              <span v-if="loading">در حال بارگذاری...</span>
-              <span v-else>اعمال فیلتر</span>
-            </button>
-          </div>
-        </div>
-      </div>
+        </NuxtLink>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="space-y-4">
-        <div v-for="i in 6" :key="i" class="bg-white shadow rounded-lg p-6 animate-pulse">
-          <div class="flex space-x-4">
-            <div class="rounded-full bg-gray-200 h-12 w-12"></div>
-            <div class="flex-1 space-y-2">
-              <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div class="h-4 bg-gray-200 rounded w-1/2"></div>
-              <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+        <!-- Settlements Card -->
+        <NuxtLink 
+          to="/mechanic/settlements"
+          class="group bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+        >
+          <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-200 transition-colors">
+              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">تسویه‌ها</h3>
+            <p class="text-sm text-gray-600">پیگیری وضعیت تسویه‌های مالی</p>
+          </div>
+        </NuxtLink>
+
+        <!-- New Order Card - Highlighted -->
+        <NuxtLink 
+          to="/mechanic/orders/new"
+          class="group bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-green-300"
+        >
+          <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 bg-green-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-300 transition-colors">
+              <svg class="w-8 h-8 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-green-900 mb-2">سفارش جدید</h3>
+            <p class="text-sm text-green-700">ایجاد سفارش جدید و اشتراک‌گذاری QR</p>
+            <div class="mt-3 text-xs text-green-600 bg-green-200 rounded-full px-3 py-1 inline-block">
+              🚀 سریع و آسان
             </div>
           </div>
-        </div>
+        </NuxtLink>
+
+        <!-- My Orders Card - Highlighted -->
+        <NuxtLink 
+          to="/mechanic/orders"
+          class="group bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-blue-300"
+        >
+          <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-300 transition-colors">
+              <svg class="w-8 h-8 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">لیست سفارش‌ها</h3>
+            <p class="text-sm text-blue-700">مشاهده و مدیریت سفارش‌های ایجاد شده</p>
+            <div class="mt-3 text-xs text-blue-600 bg-blue-200 rounded-full px-3 py-1 inline-block">
+              📋 مدیریت کامل
+            </div>
+          </div>
+        </NuxtLink>
       </div>
 
-      <!-- Error State -->
-      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div class="text-red-800 text-center">
-          <p class="text-lg font-medium mb-2">خطا در بارگذاری</p>
-          <p>{{ error }}</p>
-        </div>
-      </div>
-
-      <!-- Transactions List -->
-      <div v-else-if="transactions && transactions.length > 0" class="space-y-4">
-        <!-- Summary -->
-        <div class="bg-white shadow rounded-lg p-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div>
-              <dt class="text-sm font-medium text-gray-500">تعداد تراکنش‌ها</dt>
-              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ transactions.length }}</dd>
+      <!-- Quick Guide Section -->
+      <div class="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+        <h2 class="text-2xl font-bold text-blue-900 mb-4 text-center">راهنمای سریع</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-start space-x-3 rtl:space-x-reverse">
+            <div class="flex-shrink-0 w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center">
+              <span class="text-blue-700 font-bold">1</span>
             </div>
             <div>
-              <dt class="text-sm font-medium text-gray-500">جمع سهم مکانیک</dt>
-              <dd class="mt-1 text-2xl font-semibold text-indigo-600">{{ formatCurrency(totalMechanic) }}</dd>
+              <h3 class="font-semibold text-blue-900 mb-1">سفارش جدید</h3>
+              <p class="text-sm text-blue-700">روی کارت سبز کلیک کنید تا سفارش جدید ایجاد کنید</p>
+            </div>
+          </div>
+          <div class="flex items-start space-x-3 rtl:space-x-reverse">
+            <div class="flex-shrink-0 w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center">
+              <span class="text-blue-700 font-bold">2</span>
             </div>
             <div>
-              <dt class="text-sm font-medium text-gray-500">صفحه فعلی</dt>
-              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ filters.page }}</dd>
+              <h3 class="font-semibold text-blue-900 mb-1">مدیریت سفارش‌ها</h3>
+              <p class="text-sm text-blue-700">روی کارت آبی کلیک کنید تا سفارش‌های خود را ببینید</p>
             </div>
           </div>
-        </div>
-
-        <!-- Transactions Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div 
-            v-for="transaction in transactions" 
-            :key="transaction.id" 
-            class="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow duration-200"
-          >
-            <!-- Header Row -->
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <div class="text-sm text-gray-500">شماره تراکنش</div>
-                <div class="font-semibold text-gray-900">#{{ transaction.id }}</div>
-              </div>
-              <div class="text-left">
-                <span 
-                  :class="[
-                    'px-2 py-1 text-xs font-semibold rounded-full',
-                    transaction.status === 'SETTLED' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  ]"
-                >
-                  {{ transaction.status === 'SETTLED' ? 'تسویه‌شده' : 'در انتظار' }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Date Row -->
-            <div class="mb-4">
-              <div class="text-sm text-gray-500">تاریخ ایجاد</div>
-              <div class="font-medium text-gray-900">{{ formatDate(transaction.createdAt) }}</div>
-            </div>
-
-            <!-- Amounts Row -->
-            <div class="space-y-2 mb-4">
-              <div class="flex justify-between">
-                <span class="text-sm text-gray-500">مبلغ کل:</span>
-                <span class="font-medium">{{ formatCurrency(transaction.amountTotal) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-sm text-gray-500">مبلغ مشمول:</span>
-                <span class="font-medium">{{ formatCurrency(transaction.amountEligible) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-sm text-gray-500">سهم مکانیک:</span>
-                <span class="font-bold text-indigo-600">{{ formatCurrency(transaction.mechanicAmount) }}</span>
-              </div>
-            </div>
-
-            <!-- Vendor & Customer Row -->
-            <div class="space-y-2 mb-4">
-              <div>
-                <div class="text-sm text-gray-500">فروشگاه</div>
-                <div class="font-medium text-gray-900">{{ transaction.vendor }}</div>
-              </div>
-              <div v-if="transaction.customerPhone">
-                <div class="text-sm text-gray-500">مشتری</div>
-                <div class="font-medium text-gray-900">{{ transaction.customerPhone }}</div>
-              </div>
-              <div v-if="transaction.note">
-                <div class="text-sm text-gray-500">یادداشت</div>
-                <div class="text-sm text-gray-700">{{ transaction.note }}</div>
-              </div>
-            </div>
-
-            <!-- QR Code (Optional) -->
-            <div v-if="transaction.mechanicCode" class="mb-4">
-              <div class="text-sm text-gray-500 mb-2">کد مکانیک</div>
-              <div class="bg-gray-100 p-2 rounded text-center font-mono text-sm">{{ transaction.mechanicCode }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="hasMorePages" class="flex justify-center space-x-2 rtl:space-x-reverse">
-          <button 
-            @click="previousPage"
-            :disabled="filters.page <= 1"
-            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            قبلی
-          </button>
-          <span class="px-4 py-2 text-sm text-gray-700">صفحه {{ filters.page }}</span>
-          <button 
-            @click="nextPage"
-            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            بعدی
-          </button>
         </div>
       </div>
 
-      <!-- Empty State -->
-      <div v-else class="bg-white shadow rounded-lg p-12 text-center">
-        <div class="text-gray-500">
-          <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-          </svg>
-          <p class="text-lg mb-2">هیچ تراکنشی یافت نشد</p>
-          <p class="text-sm">برای این فیلترها تراکنشی وجود ندارد.</p>
+      <!-- Quick Stats Section -->
+      <div class="mt-12">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">آمار سریع</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-lg shadow p-6 text-center">
+            <div class="text-3xl font-bold text-blue-600 mb-2">{{ stats.totalTransactions || 0 }}</div>
+            <div class="text-gray-600">کل تراکنش‌ها</div>
+          </div>
+          <div class="bg-white rounded-lg shadow p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ stats.totalOrders || 0 }}</div>
+            <div class="text-gray-600">کل سفارش‌ها</div>
+          </div>
+          <div class="bg-white rounded-lg shadow p-6 text-center">
+            <div class="text-3xl font-bold text-indigo-600 mb-2">{{ formatCurrency(stats.totalEarnings || 0) }}</div>
+            <div class="text-gray-600">کل درآمد</div>
+          </div>
         </div>
       </div>
     </div>
@@ -227,88 +138,35 @@ definePageMeta({
 
 const { user } = useAuth()
 
-// State
-const loading = ref(false)
-const error = ref('')
-const transactions = ref<any[]>([])
-const totalMechanic = ref(0)
-const hasMorePages = ref(false)
-
-// Filters
-const filters = reactive({
-  from: '',
-  to: '',
-  status: '',
-  page: 1,
-  pageSize: 20
-})
-
 // Computed
 const mechanicName = computed(() => user.value?.fullName || 'نامشخص')
 
-// Fetch transactions with stable key
-const { data, pending, error: fetchError, refresh } = await useFetch(
-  () => {
-    const params = new URLSearchParams()
-    if (filters.from) params.append('from', toISOFromJalaliInput(filters.from) || '')
-    if (filters.to) params.append('to', toISOEndOfDayFromJalaliInput(filters.to) || '')
-    if (filters.status) params.append('status', filters.status)
-    params.append('page', filters.page.toString())
-    params.append('pageSize', filters.pageSize.toString())
-    
-    return `/api/mechanic/transactions?${params.toString()}`
-  },
-  {
-    key: () => `mech-tx-${filters.status}-${filters.from}-${filters.to}-${filters.page}-${filters.pageSize}`,
-    default: () => ({ items: [], count: 0, totalMechanic: 0 }),
-    watch: false
-  }
-)
+// Stats state
+const stats = ref({
+  totalTransactions: 0,
+  totalOrders: 0,
+  totalEarnings: 0
+})
 
-// Watch data changes
-watch(data, (newData) => {
-  if (newData) {
-    transactions.value = newData.items || []
-    totalMechanic.value = newData.totalMechanic || 0
-    hasMorePages.value = (newData.items || []).length === filters.pageSize
+// Fetch quick stats
+const { data: statsData } = await useFetch('/api/mechanic/stats', {
+  key: 'mechanic-hub-stats',
+  default: () => ({ totalTransactions: 0, totalOrders: 0, totalEarnings: 0 }),
+  watch: false
+})
+
+// Watch stats data
+watch(statsData, (newData) => {
+  if (newData && typeof newData === 'object' && 'totalTransactions' in newData) {
+    stats.value = {
+      totalTransactions: (newData as any).totalTransactions || 0,
+      totalOrders: (newData as any).totalOrders || 0,
+      totalEarnings: (newData as any).totalEarnings || 0
+    }
   }
 }, { immediate: true })
 
-// Watch loading and error
-watch(pending, (newPending) => {
-  loading.value = newPending
-})
-
-watch(fetchError, (newError) => {
-  error.value = newError?.data?.statusMessage || newError?.message || 'خطا در بارگذاری'
-})
-
-// Methods
-function applyFilters() {
-  filters.page = 1 // Reset to first page
-  refresh()
-}
-
-function nextPage() {
-  filters.page++
-  refresh()
-}
-
-function previousPage() {
-  if (filters.page > 1) {
-    filters.page--
-    refresh()
-  }
-}
-
-// Date utilities
-import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput, formatJalali } from '~/utils/date'
-import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
-
-function formatDate(date: string | Date): string {
-  return formatJalali(date)
-}
-
+// Utility functions
 function formatCurrency(amount: any): string {
   if (!amount) return '0 تومان'
   const num = typeof amount === 'object' && amount.toNumber ? amount.toNumber() : Number(amount)

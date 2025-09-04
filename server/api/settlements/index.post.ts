@@ -65,8 +65,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    logger.debug({ rawFrom: from, rawTo: to, from: fromDate.toISOString(), to: toDate.toISOString(), vendorId, mechanicId }, '[SETTLEMENT CREATE] Input dates normalized')
-    logger.info({ vendorId, mechanicId, count: txs.length }, '[SETTLEMENT CREATE] Found available transactions')
+    // PROD: Debug logging removed for production
 
     // محاسبه مجموع‌ها
     const totalAmountEligible = txs.reduce<number>((sum, t) => {

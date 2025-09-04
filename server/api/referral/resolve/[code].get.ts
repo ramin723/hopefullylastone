@@ -41,9 +41,6 @@ export default defineEventHandler(async (event) => {
   const ok = !!(mech && mech.qrActive)
   const codePrefix = code.substring(0, 2)
   
-  // 4. Structured logging
-  console.log(`[QR RESOLVE] requestId:${event.context.requestId || 'unknown'} userId:${auth.id} ok:${ok} codePrefix:${codePrefix} message:"QR resolve attempt"`)
-  
   // 5. Return minimal data with consistent shape
   if (ok) {
     return {

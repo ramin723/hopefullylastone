@@ -10,10 +10,8 @@ export default defineNuxtPlugin(async () => {
       try {
         const res = await $fetch('/api/auth/me')
         user.value = (res as any).user
-        console.log('[auth] me ok:', user.value?.id, user.value?.role)
       } catch {
         user.value = null
-        console.log('[auth] me 401')
       } finally {
         hydrated.value = true
       }

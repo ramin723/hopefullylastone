@@ -1,13 +1,15 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+  // PROD: Devtools disabled in production
+  devtools: { enabled: process.env.NODE_ENV === 'development' },
   modules: ['@nuxtjs/tailwindcss'], // فعال شد
   
-  // اضافه کردن پرچم دیباگ سراسری
+  // PROD: Debug flag configuration - always false in production
   runtimeConfig: {
     public: {
-      debug: false, // در dev می‌تونی true بذاری، در prod حتما false
+      debug: process.env.NODE_ENV === 'development', // Only true in development
+      siteUrl: process.env.SITE_URL || 'http://127.0.0.1:3000', // Site URL for absolute links
     }
   },
   

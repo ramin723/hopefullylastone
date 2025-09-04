@@ -1,5 +1,12 @@
 <template>
   <div>
+    <!-- Breadcrumbs -->
+    <Breadcrumbs :items="[
+      { label: 'ادمین', to: '/admin' },
+      { label: 'تسویه‌ها', to: '/admin/settlements' },
+      { label: `#${settlementId}` }
+    ]" />
+
     <!-- عنوان صفحه -->
     <div class="mb-6">
       <div class="flex items-center justify-between">
@@ -173,6 +180,11 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ 
+  auth: true,
+  layout: 'authenticated' 
+})
+
 import { useToast } from '~/composables/useToast'
 import { formatJalali } from '~/utils/date'
 
@@ -237,10 +249,8 @@ async function markAsPaid() {
   try {
     markingPaid.value = true
     
-    const { csrfFetch } = useApi()
-    await csrfFetch(`/api/settlements/${settlementId}/mark-paid`, {
-      method: 'POST'
-    })
+    const { post } = useApi()
+    await post(`/api/settlements/${settlementId}/mark-paid`)
     
     // refresh صفحه
     await refresh()

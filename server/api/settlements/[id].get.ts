@@ -74,10 +74,6 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // لاگ موفقیت
-    logger.debug({ id, periodFrom: settlement.periodFrom, periodTo: settlement.periodTo }, '[SETTLEMENT DETAIL API] Period dates')
-    logger.info({ id, userId: auth.id, role: auth.role }, '[SETTLEMENT DETAIL API] Retrieved')
-
     // بازگرداندن داده‌ها - Decimal-safe
     return {
       id: settlement.id,

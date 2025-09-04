@@ -1,5 +1,11 @@
 <template>
   <div>
+    <!-- Breadcrumbs -->
+    <Breadcrumbs :items="[
+      { label: 'ادمین', to: '/admin' },
+      { label: 'تسویه‌ها' }
+    ]" />
+
     <!-- عنوان صفحه -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900">مدیریت تسویه‌ها</h1>
@@ -195,7 +201,10 @@ import { useToast } from '~/composables/useToast'
 import { formatJalali } from '~/utils/date'
 import { normalizeDateInputToISO, normalizeDateInputToISOEndOfDay } from '~/utils/date-ui'
 import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
-definePageMeta({ layout: 'authenticated' })
+definePageMeta({ 
+  auth: true,
+  layout: 'authenticated' 
+})
 
 // تعریف interface برای Settlement
 interface Settlement {

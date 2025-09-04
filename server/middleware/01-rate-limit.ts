@@ -11,9 +11,12 @@ const BUCKET = new Map<string, Entry[]>()
 // قوانین خاص مسیرها:
 const RULES: { test: (path: string) => boolean; limit: number; windowMs: number }[] = [
   { test: p => p.startsWith('/api/auth/login'),                 limit: 5,  windowMs: 60_000 }, // 5/min/IP
+  { test: p => p.startsWith('/api/auth/csrf'),                  limit: 60, windowMs: 300_000 }, // 60/5min/IP (CSRF token requests)
   { test: p => p.startsWith('/api/transactions'),               limit: 20, windowMs: 60_000 }, // 20/min/user/IP
   { test: p => p.startsWith('/api/settlements') && p.endsWith('/mark-paid'), limit: 10, windowMs: 60_000 }, // 10/min
   { test: p => p === '/api/settlements' && true,                limit: 10, windowMs: 60_000 }, // create/list throttle
+  { test: p => p.startsWith('/api/admin/mechanics') && p.includes('/code'), limit: 30, windowMs: 300_000 }, // 30/5min for code actions
+  { test: p => p === '/api/admin/mechanics' && true, limit: 20, windowMs: 300_000 }, // 20/5min for create mechanic
 ]
 // قانون پیش‌فرض (اگر لازم داشتی):
 const DEFAULT = { limit: 120, windowMs: 60_000 }
@@ -37,10 +40,12 @@ export default defineEventHandler((event) => {
   const routeKey =
     path.startsWith('/api/transactions') ? '/api/transactions' :
     path.startsWith('/api/auth/login')   ? '/api/auth/login'   :
+    path.startsWith('/api/auth/csrf')    ? '/api/auth/csrf'    :
     (path.startsWith('/api/settlements') && path.endsWith('/mark-paid')) ? '/api/settlements/mark-paid' :
-    (path === '/api/settlements' ? '/api/settlements' :
+    (path === '/api/settlements') ? '/api/settlements' :
+    (path.startsWith('/api/admin/mechanics') && path.includes('/code')) ? '/api/admin/mechanics/code' :
+    (path === '/api/admin/mechanics') ? '/api/admin/mechanics' :
     path
-    )
 
   const key = `${routeKey}::ip:${ip}::user:${userId ?? '-'}`
 

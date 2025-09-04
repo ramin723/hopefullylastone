@@ -85,9 +85,6 @@ export default defineEventHandler(async (event) => {
       )
     }
 
-    // لاگ موفقیت
-    console.log(`[MECHANIC SETTLEMENT DETAIL API] Settlement ${settlementId} retrieved for user ${auth.id} with role ${auth.role}`)
-
     // بازگرداندن داده‌ها - Decimal-safe
     return {
       id: settlement.id,

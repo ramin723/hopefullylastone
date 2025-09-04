@@ -4,6 +4,7 @@ import { prisma } from '../../utils/db'
 import { requireAuth } from '../../utils/auth'
 import { CreateTxSchema } from '../../validators/transactions'
 import { computeCommission } from '../../utils/commission'
+import logger from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -34,7 +35,7 @@ export default defineEventHandler(async (event) => {
   if (!parsed.success) {
     throw createError({ statusCode: 400, statusMessage: parsed.error.issues.map(i => i.message).join(', ') })
   }
-  const { mechanicCode, customerPhone, amountTotal, amountEligible, note } = parsed.data
+  const { mechanicCode, customerPhone, amountTotal, amountEligible, note, orderCode } = parsed.data
 
   // 3) Resolve mechanic
   const mechanic = await prisma.mechanic.findUnique({
@@ -45,30 +46,75 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'mechanic not found or inactive' })
   }
 
+  // 3.5) If orderCode provided, validate and consume order
+  let order = null
+  if (orderCode) {
+    order = await prisma.order.findUnique({
+      where: { code: orderCode },
+      select: { id: true, status: true, mechanicId: true }
+    })
+    
+    if (!order) {
+      throw createError({ statusCode: 404, statusMessage: 'Order not found' })
+    }
+    
+    if (order.status !== 'PENDING') {
+      throw createError({ statusCode: 409, statusMessage: 'Order already consumed or invalid' })
+    }
+    
+    if (order.mechanicId !== mechanic.id) {
+      throw createError({ statusCode: 400, statusMessage: 'Order does not belong to this mechanic' })
+    }
+  }
+
   // 4) Compute commissions (use vendor.percentDefault if needed later; for MVP fixed 3%/2%)
   const { mechanicAmount, platformAmount } = computeCommission(amountEligible, 0.03, 0.02)
 
-  // 5) Create transaction + commission
-  const tx = await prisma.transaction.create({
-    data: {
-      mechanicId: mechanic.id,
-      vendorId: vendor.id,
-      customerPhone,
-      amountTotal,
-      amountEligible,
-      note,
-      status: 'PENDING',
-      idempotencyKey: idem || null,
-      commission: {
-        create: {
-          rateMechanic: 0.03,
-          ratePlatform: 0.02,
-          mechanicAmount,
-          platformAmount
+  // 5) Create transaction + commission + consume order if provided
+  const tx = await prisma.$transaction(async (prismaTx) => {
+    // Create transaction
+    const transaction = await prismaTx.transaction.create({
+      data: {
+        mechanicId: mechanic.id,
+        vendorId: vendor.id,
+        customerPhone,
+        amountTotal,
+        amountEligible,
+        note,
+        status: 'PENDING',
+        idempotencyKey: idem || null,
+        commission: {
+          create: {
+            rateMechanic: 0.03,
+            ratePlatform: 0.02,
+            mechanicAmount,
+            platformAmount
+          }
         }
-      }
-    },
-    include: { commission: true }
+      },
+      include: { commission: true }
+    })
+    
+    // Consume order if provided
+    if (order) {
+      await prismaTx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'CONSUMED',
+          consumedAt: new Date(),
+          consumedByVendorId: vendor.id
+        }
+      })
+      
+      logger.info({
+        orderId: order.id,
+        orderCode,
+        transactionId: transaction.id,
+        vendorId: vendor.id
+      }, '[TRANSACTIONS API] Order consumed during transaction creation')
+    }
+    
+    return transaction
   })
 
   return {

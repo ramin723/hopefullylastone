@@ -1,6 +1,13 @@
 <template>
   <div :key="String($route.fullPath)" class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Breadcrumbs -->
+      <Breadcrumbs :items="[
+        { label: 'خانه فروشگاه', to: '/vendor' },
+        { label: 'تسویه‌ها', to: '/vendor/settlements' },
+        { label: `#${settlementId}` }
+      ]" />
+
       <!-- Header -->
       <div class="mb-8">
         <div class="flex items-center justify-between">
@@ -29,7 +36,7 @@
 
       <!-- Settlement Details -->
       <div v-if="settlement" class="space-y-6">
-        <!-- Debug Info -->
+        <!-- Debug Info - Only in development -->
         <div v-if="config.public.debug" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
           <h3 class="text-sm font-medium text-yellow-800 mb-2">اطلاعات Debug:</h3>
           <pre class="text-xs text-yellow-700">{{ JSON.stringify(settlement, null, 2) }}</pre>

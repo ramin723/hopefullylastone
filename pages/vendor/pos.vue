@@ -11,15 +11,26 @@
             <h1 class="text-3xl font-bold text-gray-900">ثبت فروش</h1>
             <p class="mt-2 text-gray-600">فروشگاه: {{ vendorName }}</p>
           </div>
-          <NuxtLink 
-            to="/vendor/settlements"
-            class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
-          >
-            <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-            </svg>
-            تسویه‌ها
-          </NuxtLink>
+          <div class="flex gap-3">
+            <NuxtLink 
+              to="/vendor/settlements"
+              class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+            >
+              <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              </svg>
+              تسویه‌ها
+            </NuxtLink>
+            <NuxtLink 
+              to="/vendor"
+              class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+            >
+              <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+              </svg>
+              خانه فروشگاه
+            </NuxtLink>
+          </div>
         </div>
       </div>
 
@@ -78,7 +89,27 @@
         <!-- QR Scanner Section -->
         <details class="mt-3">
           <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">اسکن QR (اختیاری)</summary>
-          <QrScanner class="mt-2" @read="(code:string)=>{ mechanicCode = code }" />
+          <QrScanner class="mt-2" @read="parseAndHandleQR" />
+        </details>
+
+        <!-- Order Scanner Section -->
+        <details class="mt-3">
+          <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">اسکن سفارش مشتری (اختیاری)</summary>
+          <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div class="text-sm text-blue-800 mb-2">
+              اسکن QR سفارش برای پر کردن خودکار اطلاعات
+            </div>
+            <QrScanner @read="scanOrder" />
+            <div v-if="orderScanning" class="mt-2 text-sm text-blue-600">
+              در حال بررسی سفارش...
+            </div>
+            <div v-if="orderError" class="mt-2 text-sm text-red-600">
+              {{ orderError }}
+            </div>
+            <div v-if="orderScanned" class="mt-2 text-sm text-green-600">
+              ✅ سفارش یافت شد - اطلاعات پر شد
+            </div>
+          </div>
         </details>
       </div>
 
@@ -357,6 +388,13 @@ const error = ref<string>('')
 const submitMessage = ref<{ text: string; type: 'success' | 'error' | '' }>({ text: '', type: '' })
 const transactionResult = ref<any>(null)
 
+// Order scanning state
+const orderScanning = ref<boolean>(false)
+const orderError = ref<string>('')
+const orderScanned = ref<boolean>(false)
+const fromOrder = ref<boolean>(false)
+const orderCode = ref<string>('')
+
 // Computed
 const vendorName = computed(() => user.value?.fullName || 'نامشخص')
 
@@ -424,6 +462,22 @@ onMounted(() => {
   }
 })
 
+// Handle QR scan based on content type
+async function parseAndHandleQR(code: string) {
+  if (!code) return
+  
+  const parsed = parseScanned(code)
+  
+  if (parsed.kind === 'order') {
+    // Handle order QR
+    await scanOrder(parsed.code)
+  } else {
+    // Handle mechanic QR
+    mechanicCode.value = parsed.code
+    await validateMechanicCode()
+  }
+}
+
 // Validate mechanic code
 async function validateMechanicCode() {
   if (!mechanicCode.value) return
@@ -448,6 +502,98 @@ async function validateMechanicCode() {
     mechanicError.value = 'کد مکانیک نامعتبر است'
   } finally {
     validating.value = false
+  }
+}
+
+// Parse scanned QR content and determine type
+function parseScanned(str: string) {
+  const s = (str || '').trim()
+  
+  // Check for explicit prefixes
+  if (s.startsWith('ORDER:')) {
+    return { kind: 'order', code: s.slice(6) }
+  }
+  if (s.startsWith('MECH:')) {
+    return { kind: 'mechanic', code: s.slice(5) }
+  }
+  
+  // Fallback: try to determine by pattern
+  // Order codes are typically longer and may contain letters/numbers
+  // Mechanic codes are typically shorter (3-6 characters)
+  if (s.length >= 8) {
+    return { kind: 'order', code: s }
+  } else if (s.length >= 3 && s.length <= 8) {
+    return { kind: 'mechanic', code: s }
+  }
+  
+  // Default to mechanic if unclear
+  return { kind: 'mechanic', code: s }
+}
+
+// Scan order QR code
+async function scanOrder(code: string) {
+  if (!code) return
+  
+  orderScanning.value = true
+  orderError.value = ''
+  orderScanned.value = false
+  
+  try {
+    const response = await $fetch(`/api/orders/${code}`)
+    
+    if (response.ok && (response as any).order) {
+      const order = (response as any).order
+      
+      // Prefill form with order data
+      if (order.mechanic) {
+        mechanic.value = {
+          id: order.mechanic.id,
+          code: order.mechanic.code,
+          name: order.mechanic.name
+        }
+        mechanicCode.value = order.mechanic.code
+      }
+      
+      form.value.customerPhone = order.customerPhone
+      if (order.note) {
+        form.value.note = order.note
+      }
+      
+      // Set order flags
+      fromOrder.value = true
+      orderCode.value = code
+      orderScanned.value = true
+      
+      // Show success message
+      useToast().show('اطلاعات سفارش با موفقیت پر شد', 'success')
+      
+      // If POS supports items, try to map them
+      if (order.items && order.items.length > 0) {
+        // For now, just show info message
+        useToast().show(`اقلام سفارش دریافت شد (${order.items.length} آیتم) - نسخه فعلی POS از جزئیات آیتم‌ها پشتیبانی نمی‌کند`, 'info')
+      }
+      
+    } else {
+      throw new Error('Invalid order response')
+    }
+    
+  } catch (err: any) {
+    console.error('Order scan error:', err)
+    
+    if (err.statusCode === 409) {
+      orderError.value = 'این سفارش قبلاً استفاده شده است'
+    } else if (err.statusCode === 404) {
+      orderError.value = 'سفارش یافت نشد'
+    } else if (err.statusCode === 403) {
+      orderError.value = 'شما مجاز به دسترسی به این سفارش نیستید'
+    } else {
+      orderError.value = 'خطا در بررسی سفارش'
+    }
+    
+    fromOrder.value = false
+    orderCode.value = ''
+  } finally {
+    orderScanning.value = false
   }
 }
 
@@ -485,12 +631,19 @@ async function handleSubmit() {
       customerPhone: form.value.customerPhone,
       amountTotal: amountTotal.value,
       amountEligible: amountEligible.value,
-      note: form.value.note
+      note: form.value.note,
+      orderCode: fromOrder.value ? orderCode.value : undefined
     })
 
     if (response) {
       transactionResult.value = response
-      useToast().show('تراکنش با موفقیت ثبت شد', 'success')
+      
+      let successMessage = 'تراکنش با موفقیت ثبت شد'
+      if (fromOrder.value) {
+        successMessage += ' - سفارش مصرف شد'
+      }
+      
+      useToast().show(successMessage, 'success')
       submitMessage.value = { text: 'ثبت موفق', type: 'success' }
       resetForm(true)
     }
@@ -513,6 +666,13 @@ function resetForm(preserveInputs: boolean = false) {
   }
   transactionResult.value = null
   error.value = ''
+  
+  // Reset order flags
+  fromOrder.value = false
+  orderCode.value = ''
+  orderScanned.value = false
+  orderError.value = ''
+  
   // Keep mechanic code for convenience
 }
 

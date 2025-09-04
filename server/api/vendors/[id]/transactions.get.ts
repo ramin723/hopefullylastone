@@ -35,9 +35,6 @@ export default defineEventHandler(async (event) => {
       include: { commission: true, mechanic: { include: { user: true } } }
     })
 
-    // لاگ موفقیت
-    console.log(`[VENDOR TRANSACTIONS API] Transactions retrieved for vendor ${vendorIdParam}: ${rows.length} records`)
-
     return rows.map((tx) => ({
       id: tx.id,
       createdAt: tx.createdAt,

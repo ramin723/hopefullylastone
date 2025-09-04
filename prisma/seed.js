@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  // PROD: Seed logging minimized for production
 
   // 1) Admin
   const adminPhone = '09000000000';
@@ -22,7 +22,6 @@ async function main() {
       role: UserRole.ADMIN,
     },
   });
-  console.log('✅ Admin created:', admin.fullName);
 
   // 2) Vendor + User
   const vendorPhone = '09120000001';
@@ -51,8 +50,6 @@ async function main() {
       status: 'ACTIVE',
     },
   });
-  console.log('✅ Vendor created:', vendor.storeName);
-
   // 3) Mechanic + User
   const mechPhone = '09120000002';
   const mechPass = 'mechanic123';
@@ -78,10 +75,8 @@ async function main() {
       qrActive: true,
     },
   });
-  console.log('✅ Mechanic created:', mechanic.code);
 
   // 4) ایجاد تراکنش‌های نمونه برای تست
-  console.log('📊 Creating sample transactions...');
   
   // تراکنش‌های مختلف با مبالغ مختلف
   const sampleTransactions = [
@@ -138,11 +133,10 @@ async function main() {
       }
     });
 
-    console.log(`✅ Transaction ${i + 1} created: ${tx.amountTotal.toLocaleString()} تومان`);
+    // PROD: Transaction creation logging removed for production
   }
 
   // 5) ایجاد Settlement نمونه برای تست
-  console.log('💰 Creating sample settlement...');
   
   // ابتدا transaction های موجود را دریافت می‌کنیم که هنوز تسویه نشده‌اند
   const availableTransactions = await prisma.transaction.findMany({
@@ -179,19 +173,13 @@ async function main() {
       }
     });
     
-    console.log('✅ Settlement created:', settlement.id);
+    // PROD: Settlement creation logging removed for production
   } else {
-    console.log('⚠️ No available transactions found to create settlement');
+    // PROD: No transactions warning removed for production
   }
 
   console.log('\n🎉 Database seed completed successfully!');
-  console.log('\n📋 Test Data Summary:');
-  console.log(`   👤 Admin: ${adminPhone} / ${adminPass}`);
-  console.log(`   🏪 Vendor: ${vendorPhone} / ${vendorPass}`);
-  console.log(`   🔧 Mechanic: ${mechPhone} / ${mechPass}`);
-  console.log(`   💰 Transactions: ${sampleTransactions.length} created`);
-  console.log(`   📊 Settlement: 1 created (OPEN status)`);
-  console.log('\n🚀 Ready to test Guardrails & Constraints!');
+  // PROD: Test data summary removed for production
 }
 
 main()

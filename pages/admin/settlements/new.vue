@@ -1,5 +1,12 @@
 <template>
   <div>
+    <!-- Breadcrumbs -->
+    <Breadcrumbs :items="[
+      { label: 'ادمین', to: '/admin' },
+      { label: 'تسویه‌ها', to: '/admin/settlements' },
+      { label: 'ایجاد جدید' }
+    ]" />
+
     <!-- عنوان صفحه -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900">ساخت تسویه جدید</h1>
@@ -220,7 +227,10 @@ import { formatJalaliWithTime } from '~/utils/date'
 import { normalizeDateInputToISO, normalizeDateInputToISOEndOfDay } from '~/utils/date-ui'
 import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
 
-definePageMeta({ layout: 'authenticated' })
+definePageMeta({ 
+  auth: true,
+  layout: 'authenticated' 
+})
 
 // تعریف interface برای Vendor
 interface Vendor {
@@ -322,7 +332,7 @@ async function submitForm() {
     pending.value = true
     error.value = ''
     
-    const { csrfFetch } = useApi()
+    const { post } = useApi()
     
     // تبدیل تاریخ‌های شمسی به ISO
     const fromISO = normalizeDateInputToISO(form.value.from)
@@ -334,14 +344,11 @@ async function submitForm() {
       return
     }
 
-    const response = await csrfFetch<SettlementResponse>('/api/settlements', {
-      method: 'POST',
-      body: {
-        vendorId: Number(form.value.vendorId),
-        mechanicId: form.value.mechanicId ? Number(form.value.mechanicId) : undefined,
-        from: fromISO,
-        to: toISO
-      }
+    const response = await post<SettlementResponse>('/api/settlements', {
+      vendorId: Number(form.value.vendorId),
+      mechanicId: form.value.mechanicId ? Number(form.value.mechanicId) : undefined,
+      from: fromISO,
+      to: toISO
     })
     
     // موفقیت - انتقال به صفحه جزئیات

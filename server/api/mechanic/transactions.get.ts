@@ -5,13 +5,10 @@ import { requireAuth } from '../../utils/auth'
 import { decimalToNumber } from '../../utils/decimal'
 
 export default defineEventHandler(async (event) => {
-  console.log('[MECHANIC API] Request started')
-  
   try {
     // بررسی اتصال به پایگاه داده
     try {
       await prisma.$queryRaw`SELECT 1`
-      console.log('[MECHANIC API] Database connection OK')
     } catch (dbError) {
       console.error('[MECHANIC API] Database connection failed:', dbError)
       throw createError({ 
@@ -21,19 +18,15 @@ export default defineEventHandler(async (event) => {
     }
     
     const auth = await requireAuth(event, ['MECHANIC'])
-    console.log('[MECHANIC API] Auth successful:', { userId: auth.id, role: auth.role })
 
     const mech = await prisma.mechanic.findUnique({ where: { userId: auth.id } })
     if (!mech) {
-      console.log('[MECHANIC API] Mechanic not found for userId:', auth.id)
       throw createError({ statusCode: 403, statusMessage: 'Mechanic not found' })
     }
-    console.log('[MECHANIC API] Mechanic found:', { mechanicId: mech.id, code: mech.code })
 
     // دریافت query parameters
     const query = getQuery(event)
     const { from, to, status, page = '1', pageSize = '20' } = query
-    console.log('[MECHANIC API] Query params:', { from, to, status, page, pageSize })
 
     // تبدیل pagination parameters
     const pageNum = parseInt(page as string) || 1
@@ -77,11 +70,8 @@ export default defineEventHandler(async (event) => {
       where.status = status
     }
 
-    console.log('[MECHANIC API] Where clause:', JSON.stringify(where))
-
     // دریافت تعداد کل تراکنش‌ها (برای pagination)
     const totalCount = await prisma.transaction.count({ where })
-    console.log('[MECHANIC API] Total count:', totalCount)
 
     // دریافت تراکنش‌ها با pagination
     let items
@@ -96,7 +86,6 @@ export default defineEventHandler(async (event) => {
           vendor: { select: { id: true, user: { select: { fullName: true } } } },
         },
       })
-      console.log('[MECHANIC API] Found transactions:', items.length)
     } catch (queryError) {
       console.error('[MECHANIC API] Database query failed:', queryError)
       throw createError({ 
@@ -132,14 +121,6 @@ export default defineEventHandler(async (event) => {
       hasMore: skip + items.length < totalCount
     }
 
-    console.log('[MECHANIC API] Response prepared:', { 
-      count: result.count, 
-      totalCount: result.totalCount,
-      totalMechanic: result.totalMechanic,
-      page: result.page,
-      pageSize: result.pageSize,
-      hasMore: result.hasMore
-    })
     return result
     
   } catch (error: any) {

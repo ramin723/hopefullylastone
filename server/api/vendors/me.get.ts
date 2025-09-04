@@ -25,8 +25,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Vendor not found' })
     }
 
-    // لاگ موفقیت
-    console.log(`[VENDOR ME API] Vendor info retrieved for user ${auth.id}`)
+    // PROD: Success logging removed for production
 
     return vendor
 

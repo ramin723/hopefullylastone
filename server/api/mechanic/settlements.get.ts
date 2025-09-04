@@ -62,7 +62,6 @@ export default defineEventHandler(async (event) => {
 
     // دریافت تعداد کل تسویه‌ها (برای pagination)
     const totalCount = await prisma.settlement.count({ where })
-    console.log(`[MECHANIC SETTLEMENTS API] Total count for mechanic ${mechanic.id}: ${totalCount}`)
 
     // دریافت Settlement ها که شامل تراکنش‌های این مکانیک هستند
     const settlements = await prisma.settlement.findMany({
@@ -143,17 +142,6 @@ export default defineEventHandler(async (event) => {
       pageSize: pageSizeNum,
       hasMore: skip + settlementsWithTotals.length < totalCount
     }
-
-    // لاگ موفقیت
-    console.log(`[MECHANIC SETTLEMENTS API] Settlements retrieved for mechanic ${mechanic.id}:`, {
-      count: result.count,
-      totalCount: result.totalCount,
-      totalEligible: result.totalEligible,
-      totalMechanic: result.totalMechanic,
-      page: result.page,
-      pageSize: result.pageSize,
-      hasMore: result.hasMore
-    })
 
     return result
 

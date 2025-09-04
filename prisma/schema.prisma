@@ -16,21 +16,20 @@ model User {
   status        String         @default("ACTIVE")
   createdAt     DateTime       @default(now())
   Mechanic      Mechanic?
-  Vendor        Vendor?
   refreshTokens RefreshToken[]
+  Vendor        Vendor?
 }
 
 model RefreshToken {
   id        Int       @id @default(autoincrement())
   userId    Int
-  tokenHash String    @db.Text
-  userAgent String?   @db.Text
+  tokenHash String
+  userAgent String?
   ip        String?   @db.VarChar(64)
   expiresAt DateTime
   revokedAt DateTime?
   createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([expiresAt])
@@ -45,6 +44,7 @@ model Mechanic {
   createdAt    DateTime      @default(now())
   user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
+  orders       Order[]
 }
 
 model Vendor {
@@ -57,62 +57,62 @@ model Vendor {
   createdAt      DateTime      @default(now())
   settlements    Settlement[]
   transactions   Transaction[]
+  consumedOrders Order[]
   user           User          @relation(fields: [userId], references: [id])
 }
 
 model Transaction {
-  id               Int              @id @default(autoincrement())
-  mechanicId       Int
-  vendorId         Int
-  customerPhone    String
-  amountTotal      Decimal          @db.Decimal(18, 0)
-  amountEligible   Decimal          @db.Decimal(18, 0)
-  note             String?
-  status           String           @default("PENDING")
-  idempotencyKey   String?          @unique
-  createdAt        DateTime         @default(now())
-  commission       Commission?
-  SettlementItem   SettlementItem[]
-  mechanic         Mechanic         @relation(fields: [mechanicId], references: [id])
-  vendor           Vendor           @relation(fields: [vendorId], references: [id])
+  id             Int             @id @default(autoincrement())
+  mechanicId     Int
+  vendorId       Int
+  customerPhone  String
+  amountTotal    Decimal         @db.Decimal(18, 0)
+  amountEligible Decimal         @db.Decimal(18, 0)
+  note           String?
+  status         String          @default("PENDING")
+  createdAt      DateTime        @default(now())
+  idempotencyKey String?         @unique
+  commission     Commission?
+  SettlementItem SettlementItem?
+  mechanic       Mechanic        @relation(fields: [mechanicId], references: [id])
+  vendor         Vendor          @relation(fields: [vendorId], references: [id])
 }
 
 model Commission {
-  id              Int         @id @default(autoincrement())
-  transactionId   Int         @unique
-  rateMechanic    Float       @default(0.03)
-  ratePlatform    Float       @default(0.02)
-  mechanicAmount  Decimal     @db.Decimal(18, 0)
-  platformAmount  Decimal     @db.Decimal(18, 0)
-  transaction     Transaction @relation(fields: [transactionId], references: [id])
+  id             Int         @id @default(autoincrement())
+  transactionId  Int         @unique
+  rateMechanic   Float       @default(0.03)
+  ratePlatform   Float       @default(0.02)
+  mechanicAmount Decimal     @db.Decimal(18, 0)
+  platformAmount Decimal     @db.Decimal(18, 0)
+  transaction    Transaction @relation(fields: [transactionId], references: [id])
 }
 
 model Settlement {
-  id                  Int       @id @default(autoincrement())
+  id                  Int              @id @default(autoincrement())
   vendorId            Int
-  vendor              Vendor    @relation(fields: [vendorId], references: [id])
+  status              String           @default("OPEN")
+  createdAt           DateTime         @default(now())
+  paidAt              DateTime?
   periodFrom          DateTime
   periodTo            DateTime
-  totalAmountEligible Decimal   @default(0) @db.Decimal(18, 0)
-  totalMechanicAmount Decimal   @default(0) @db.Decimal(18, 0)
-  totalPlatformAmount Decimal   @default(0) @db.Decimal(18, 0)
-  status              String    @default("OPEN") // OPEN | PAID
-  createdAt           DateTime  @default(now())
-  paidAt              DateTime?
-
-  items SettlementItem[]
+  totalAmountEligible Decimal          @default(0) @db.Decimal(18, 0)
+  totalMechanicAmount Decimal          @default(0) @db.Decimal(18, 0)
+  totalPlatformAmount Decimal          @default(0) @db.Decimal(18, 0)
+  vendor              Vendor           @relation(fields: [vendorId], references: [id])
+  items               SettlementItem[]
 
   @@index([vendorId, status])
 }
 
 model SettlementItem {
-  id              Int         @id @default(autoincrement())
-  settlementId    Int
-  settlement      Settlement  @relation(fields: [settlementId], references: [id])
-  transactionId   Int         @unique
-  transaction     Transaction @relation(fields: [transactionId], references: [id])
-  mechanicAmount  Decimal     @default(0) @db.Decimal(18, 0)
-  platformAmount  Decimal     @default(0) @db.Decimal(18, 0)
+  id             Int         @id @default(autoincrement())
+  settlementId   Int
+  transactionId  Int         @unique
+  mechanicAmount Decimal     @default(0) @db.Decimal(18, 0)
+  platformAmount Decimal     @default(0) @db.Decimal(18, 0)
+  settlement     Settlement  @relation(fields: [settlementId], references: [id])
+  transaction    Transaction @relation(fields: [transactionId], references: [id])
 }
 
 model PriceCache {
@@ -137,4 +137,36 @@ enum UserRole {
   MECHANIC
   VENDOR
   ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONSUMED
+  CANCELLED
+  EXPIRED
+}
+
+model Order {
+  id           Int          @id @default(autoincrement())
+  code         String       @unique
+  mechanicId   Int
+  customerPhone String
+  note         String?
+  status       OrderStatus  @default(PENDING)
+  expiresAt    DateTime?
+  createdAt    DateTime     @default(now())
+  consumedAt   DateTime?
+  consumedByVendorId Int?
+  mechanic     Mechanic     @relation(fields: [mechanicId], references: [id], onDelete: Restrict)
+  consumedByVendor Vendor?  @relation(fields: [consumedByVendorId], references: [id])
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id       Int    @id @default(autoincrement())
+  orderId  Int
+  title    String
+  quantity Int    @default(1)
+  note     String?
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }

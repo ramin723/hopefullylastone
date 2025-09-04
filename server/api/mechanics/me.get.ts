@@ -28,8 +28,6 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 404, statusMessage: 'Mechanic not found' })
       }
       
-      console.log(`[MECHANIC ME API] Admin ${auth.id} retrieved mechanic ${mechanic.id}`)
-      
       return {
         id: mechanic.id,
         code: mechanic.code,
@@ -52,8 +50,6 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Mechanic profile not found' 
       })
     }
-    
-    console.log(`[MECHANIC ME API] Mechanic ${mechanic.id} retrieved own profile`)
     
     return {
       id: mechanic.id,
