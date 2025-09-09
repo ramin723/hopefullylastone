@@ -339,7 +339,7 @@ const loadInvites = async () => {
     // Use stable cache key for better caching
     const cacheKey = `admin-invites-${filters.value.role || 'all'}-${filters.value.status || 'all'}-${filters.value.phone || 'no-phone'}-${pagination.value.page}-${pagination.value.limit}`
     
-    const response = await get(`/admin/invites?${params}`, {
+    const response = await get(`/api/admin/invites?${params}`, {
       key: cacheKey
     })
     
@@ -357,7 +357,7 @@ const loadInvites = async () => {
 const createInvite = async () => {
   creating.value = true
   try {
-    const response = await post('/admin/invites', newInvite.value)
+    const response = await post('/api/admin/invites', newInvite.value)
     
     if (response.ok) {
       showToast('دعوت با موفقیت ارسال شد', 'success')
@@ -380,7 +380,7 @@ const cancelInvite = async (inviteId: number) => {
   if (!confirm('آیا از لغو این دعوت اطمینان دارید؟')) return
   
   try {
-    const response = await post(`/admin/invites/${inviteId}/cancel`)
+    const response = await post(`/api/admin/invites/${inviteId}/cancel`)
     
     if (response.ok) {
       showToast('دعوت با موفقیت لغو شد', 'success')

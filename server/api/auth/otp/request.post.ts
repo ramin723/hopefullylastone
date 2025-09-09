@@ -6,7 +6,7 @@ import { rateLimitComposite, getClientIP, hashPhone, maskPhone } from '../../../
 import { appendResponseHeader } from 'h3'
 import { RequestOtpSchema } from '../../../validators/otp'
 import { generateNumericCode, hashCode, normalizePhone } from '../../../utils/otp'
-import { sendSms, generateOtpMessage } from '../../../utils/sms'
+import { sendOtpViaSms } from '../../../utils/sms'
 
 export default defineEventHandler(async (event) => {
   const requestId = randomUUID()
@@ -111,8 +111,7 @@ export default defineEventHandler(async (event) => {
     })
     
     // Send SMS
-    const message = generateOtpMessage(code, purpose)
-    await sendSms(normalizedPhone, message)
+    await sendOtpViaSms({ phone: normalizedPhone, code })
     
     logger.info('OTP generated and sent successfully', {
       requestId,

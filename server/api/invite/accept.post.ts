@@ -10,6 +10,7 @@ import { normalizePhone } from '../../utils/otp'
 import { maskPhone } from '../../utils/rateLimiter'
 import { hashCode, isValid } from '../../utils/otp'
 import { generateTokens } from '../../utils/tokens'
+import { generateMechanicCodeUnique } from '../../utils/ids'
 
 export default defineEventHandler(async (event) => {
   const requestId = randomUUID()
@@ -90,7 +91,7 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    // Check if invite is valid
+    // Check if invite is valid (not expired, not used)
     if (!isInviteValid(invite)) {
       const reason = invite.usedAt ? 'used' : 'expired'
       logger.warn('Invite is invalid', { 
@@ -135,152 +136,217 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    // Mark OTP as used
-    await prisma.otpCode.update({
-      where: { id: otpRecord.id },
-      data: { isUsed: true }
-    })
-    
-    // Check if user already exists
-    let user = await prisma.user.findUnique({
-      where: { phone: normalizedPhone },
-      include: {
-        Mechanic: invite.role === 'MECHANIC',
-        Vendor: invite.role === 'VENDOR'
-      }
-    })
-    
-    if (user) {
-      // User exists, check if they have the correct role and status
-      if (user.role !== invite.role) {
-        logger.warn('User exists with different role', {
-          requestId,
-          userId: user.id,
-          userRole: user.role,
-          inviteRole: invite.role
-        })
-        
-        throw createError({
-          statusCode: 409,
-          statusMessage: 'User role mismatch',
-          message: 'کاربری با این شماره تلفن با نقش متفاوت وجود دارد'
-        })
-      }
+    // ATOMIC TRANSACTION: All operations in one transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Mark OTP as used
+      await tx.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { isUsed: true }
+      })
       
-      if (user.status !== 'ACTIVE') {
-        // Reactivate user
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { status: 'ACTIVE' },
+      // Check if user already exists
+      let user = await tx.user.findUnique({
+        where: { phone: normalizedPhone },
+        include: {
+          Mechanic: invite.role === 'MECHANIC',
+          Vendor: invite.role === 'VENDOR'
+        }
+      })
+      
+      let userCreated = false
+      let roleEntityCreated = false
+      let qrGenerated = false
+      
+      if (user) {
+        // User exists, check if they have the correct role
+        if (user.role !== invite.role) {
+          logger.warn('User exists with different role', {
+            requestId,
+            userId: user.id,
+            userRole: user.role,
+            inviteRole: invite.role
+          })
+          
+          throw createError({
+            statusCode: 400,
+            statusMessage: 'User role mismatch',
+            message: 'کاربری با این شماره تلفن با نقش متفاوت وجود دارد'
+          })
+        }
+        
+        // Reactivate user if needed
+        if (user.status !== 'ACTIVE') {
+          user = await tx.user.update({
+            where: { id: user.id },
+            data: { status: 'ACTIVE' },
+            include: {
+              Mechanic: invite.role === 'MECHANIC',
+              Vendor: invite.role === 'VENDOR'
+            }
+          })
+        }
+        
+        // Update user info from invite meta if provided
+        if (invite.meta && (invite.meta as any)?.fullName) {
+          user = await tx.user.update({
+            where: { id: user.id },
+            data: { 
+              fullName: (invite.meta as any).fullName
+            },
+            include: {
+              Mechanic: invite.role === 'MECHANIC',
+              Vendor: invite.role === 'VENDOR'
+            }
+          })
+        }
+        
+      } else {
+        // Create new user
+        const userData: any = {
+          fullName: (invite.meta as any)?.fullName || 'کاربر جدید',
+          phone: normalizedPhone,
+          passwordHash: '', // Will be set when user sets password
+          role: invite.role,
+          status: 'ACTIVE'
+        }
+        
+        user = await tx.user.create({
+          data: userData,
           include: {
             Mechanic: invite.role === 'MECHANIC',
             Vendor: invite.role === 'VENDOR'
           }
         })
         
-        logger.info('User reactivated', {
-          requestId,
-          userId: user.id,
-          phone: maskPhone(normalizedPhone)
-        })
+        userCreated = true
       }
       
-      // Set mustSetPassword flag
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { 
-          // Update user info from invite meta if provided
-          fullName: (invite.meta as any)?.fullName || user.fullName
-        },
-        include: {
-          Mechanic: invite.role === 'MECHANIC',
-          Vendor: invite.role === 'VENDOR'
-        }
-      })
-      
-    } else {
-      // Create new user
-      const userData: any = {
-        fullName: (invite.meta as any)?.fullName || 'کاربر جدید',
-        phone: normalizedPhone,
-        passwordHash: '', // Will be set when user sets password
-        role: invite.role,
-        status: 'ACTIVE'
-      }
-      
-      user = await prisma.user.create({
-        data: userData,
-        include: {
-          Mechanic: invite.role === 'MECHANIC',
-          Vendor: invite.role === 'VENDOR'
-        }
-      })
-      
-      // Create role-specific record
+      // Create or update role-specific entity
       if (invite.role === 'MECHANIC') {
-        const mechanicData: any = {
-          userId: user.id,
-          code: `M${user.id.toString().padStart(6, '0')}`,
-          city: (invite.meta as any)?.city,
-          specialties: (invite.meta as any)?.specialties
-        }
+        let mechanic = user.Mechanic
         
-        await prisma.mechanic.create({
-          data: mechanicData
-        })
+        if (!mechanic) {
+          // Create new mechanic
+          const mechanicCode = await generateMechanicCodeUnique(tx)
+          const mechanicData: any = {
+            userId: user.id,
+            code: mechanicCode,
+            qrActive: true,
+            city: (invite.meta as any)?.city,
+            specialties: (invite.meta as any)?.specialties
+          }
+          
+          mechanic = await tx.mechanic.create({
+            data: mechanicData
+          })
+          
+          roleEntityCreated = true
+          qrGenerated = true
+        } else {
+          // Update existing mechanic
+          const updateData: any = {}
+          
+          if (!mechanic.code) {
+            updateData.code = await generateMechanicCodeUnique(tx)
+            qrGenerated = true
+          }
+          
+          if (!mechanic.qrActive) {
+            updateData.qrActive = true
+          }
+          
+          if (Object.keys(updateData).length > 0) {
+            mechanic = await tx.mechanic.update({
+              where: { id: mechanic.id },
+              data: updateData
+            })
+          }
+        }
         
       } else if (invite.role === 'VENDOR') {
-        const vendorData: any = {
-          userId: user.id,
-          storeName: (invite.meta as any)?.storeName || 'فروشگاه جدید',
-          city: (invite.meta as any)?.city,
-          addressLine: (invite.meta as any)?.addressLine,
-          province: (invite.meta as any)?.province,
-          postalCode: (invite.meta as any)?.postalCode
-        }
+        let vendor = user.Vendor
         
-        await prisma.vendor.create({
-          data: vendorData
-        })
+        if (!vendor) {
+          // Create new vendor
+          const vendorData: any = {
+            userId: user.id,
+            storeName: (invite.meta as any)?.storeName || 'فروشگاه جدید',
+            city: (invite.meta as any)?.city,
+            addressLine: (invite.meta as any)?.addressLine,
+            province: (invite.meta as any)?.province,
+            postalCode: (invite.meta as any)?.postalCode,
+            isActive: true
+          }
+          
+          vendor = await tx.vendor.create({
+            data: vendorData
+          })
+          
+          roleEntityCreated = true
+        } else {
+          // Update existing vendor if needed
+          const updateData: any = {}
+          
+          if (invite.meta && (invite.meta as any)?.storeName) {
+            updateData.storeName = (invite.meta as any).storeName
+          }
+          
+          if (invite.meta && (invite.meta as any)?.city) {
+            updateData.city = (invite.meta as any).city
+          }
+          
+          if (Object.keys(updateData).length > 0) {
+            vendor = await tx.vendor.update({
+              where: { id: vendor.id },
+              data: updateData
+            })
+          }
+        }
       }
       
-      logger.info('New user created from invite', {
-        requestId,
-        userId: user.id,
-        role: invite.role,
-        phone: maskPhone(normalizedPhone)
+      // Mark invite as used
+      await tx.invite.update({
+        where: { id: invite.id },
+        data: { usedAt: new Date() }
       })
-    }
-    
-    // Mark invite as used
-    await prisma.invite.update({
-      where: { id: invite.id },
-      data: { usedAt: new Date() }
+      
+      return {
+        user,
+        userCreated,
+        roleEntityCreated,
+        qrGenerated
+      }
     })
     
     // Generate tokens for login
-    const tokens = await generateTokens(user.id, event)
+    const tokens = await generateTokens(result.user.id, event)
     
     logger.info('Invite accepted successfully', {
       requestId,
       inviteId: invite.id,
-      userId: user.id,
+      userId: result.user.id,
       role: invite.role,
-      phone: maskPhone(normalizedPhone)
+      phone: maskPhone(normalizedPhone),
+      userCreated: result.userCreated,
+      roleEntityCreated: result.roleEntityCreated,
+      qrGenerated: result.qrGenerated
     })
     
     return {
       ok: true,
-      data: {
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          role: user.role,
-          mustSetPassword: !user.passwordHash || user.passwordHash === ''
-        },
-        tokens,
-        redirectTo: invite.role === 'MECHANIC' ? '/mechanic' : '/vendor'
-      }
+      user: {
+        id: result.user.id,
+        role: result.user.role,
+        fullName: result.user.fullName,
+        phone: result.user.phone
+      },
+      created: {
+        user: result.userCreated,
+        roleEntity: result.roleEntityCreated,
+        qrGenerated: result.qrGenerated
+      },
+      redirect: invite.role === 'MECHANIC' ? '/mechanic' : '/vendor',
+      tokens
     }
     
   } catch (error: any) {

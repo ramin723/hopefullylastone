@@ -2,7 +2,7 @@
 import crypto from 'node:crypto'
 import { normalizePhone } from './otp'
 import { maskPhone } from './rateLimiter'
-import { sendSms } from './sms'
+import { sendInviteViaLookup } from './sms'
 
 /**
  * Generate a URL-safe random token for invite
@@ -55,22 +55,44 @@ export function generateInviteMessage(token: string, role: string, fullName?: st
 }
 
 /**
- * Send invite SMS
+ * Send invite SMS via VerifyLookup
  * @param phone Phone number
  * @param token Invite token
  * @param role User role
  * @param fullName Optional full name
+ * @returns Promise with send result
  */
 export async function sendInviteSms(
   phone: string, 
   token: string, 
   role: string, 
   fullName?: string
-): Promise<void> {
+): Promise<{ ok: boolean; sent: boolean; error?: string }> {
   const normalizedPhone = normalizePhone(phone)
-  const message = generateInviteMessage(token, role, fullName)
   
-  await sendSms(normalizedPhone, message)
+  try {
+    const result = await sendInviteViaLookup({ 
+      phone: normalizedPhone, 
+      token: token,
+      template: 'invite-code'
+    })
+    
+    return {
+      ok: true,
+      sent: true
+    }
+  } catch (error: any) {
+    console.error('[SMS] Invite send failed', {
+      phoneMasked: maskPhone(normalizedPhone),
+      error: error.message
+    })
+    
+    return {
+      ok: false,
+      sent: false,
+      error: error.message
+    }
+  }
 }
 
 /**

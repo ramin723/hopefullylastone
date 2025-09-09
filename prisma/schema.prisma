@@ -208,6 +208,7 @@ model Invite {
   usedAt      DateTime?
   createdBy   Int
   createdAt   DateTime  @default(now())
+  sent        Boolean   @default(false)
   meta        Json?
   createdByUser User    @relation(fields: [createdBy], references: [id])
 

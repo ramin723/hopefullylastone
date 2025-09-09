@@ -13,27 +13,50 @@ export const CreateInviteSchema = z.object({
   fullName: z.string()
     .min(2, 'نام باید حداقل 2 کاراکتر باشد')
     .max(100, 'نام نباید بیش از 100 کاراکتر باشد')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
   city: z.string()
     .min(2, 'شهر باید حداقل 2 کاراکتر باشد')
     .max(50, 'شهر نباید بیش از 50 کاراکتر باشد')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
   specialties: z.string()
     .max(200, 'تخصص‌ها نباید بیش از 200 کاراکتر باشد')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
   storeName: z.string()
-    .min(2, 'نام فروشگاه باید حداقل 2 کاراکتر باشد')
     .max(100, 'نام فروشگاه نباید بیش از 100 کاراکتر باشد')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
   addressLine: z.string()
     .max(200, 'آدرس نباید بیش از 200 کاراکتر باشد')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
   province: z.string()
     .max(50, 'استان نباید بیش از 50 کاراکتر باشد')
-    .optional(),
-  postalCode: z.string()
-    .regex(/^[0-9]{10}$/, 'کد پستی باید 10 رقم باشد')
     .optional()
+    .or(z.literal('')),
+  postalCode: z.string()
+    .optional()
+    .or(z.literal(''))
+}).refine((data) => {
+  // For VENDOR role, storeName is required
+  if (data.role === 'VENDOR' && (!data.storeName || data.storeName.trim().length < 2)) {
+    return false
+  }
+  return true
+}, {
+  message: 'نام فروشگاه برای نقش فروشگاه الزامی است و باید حداقل 2 کاراکتر باشد',
+  path: ['storeName']
+}).refine((data) => {
+  // For VENDOR role, postalCode must be 10 digits if provided
+  if (data.role === 'VENDOR' && data.postalCode && data.postalCode.trim() !== '') {
+    return /^[0-9]{10}$/.test(data.postalCode)
+  }
+  return true
+}, {
+  message: 'کد پستی باید 10 رقم باشد',
+  path: ['postalCode']
 })
 
 /**

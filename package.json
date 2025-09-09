@@ -16,6 +16,7 @@
     "bcryptjs": "^3.0.2",
     "dayjs": "^1.11.18",
     "jsonwebtoken": "^9.0.2",
+    "kavenegar": "^1.1.4",
     "nuxt": "^4.0.3",
     "pino": "^9.9.0",
     "pino-pretty": "^13.1.1",

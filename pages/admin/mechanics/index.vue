@@ -463,7 +463,7 @@ async function createInvite() {
   creating.value = true
   try {
     const { post } = useApi()
-    const response = await post('/admin/invites', {
+    const response = await post('/api/admin/invites', {
       role: 'MECHANIC',
       ...newInvite.value
     })

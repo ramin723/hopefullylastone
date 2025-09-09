@@ -421,7 +421,7 @@ async function createInvite() {
   creating.value = true
   try {
     const api = useApi()
-    const response = await api.post('/admin/invites', {
+    const response = await api.post('/api/admin/invites', {
       role: 'VENDOR',
       ...newInvite.value
     })

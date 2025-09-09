@@ -192,21 +192,29 @@ export default defineEventHandler(async (event) => {
     })
     
     // Send SMS
-    await sendInviteSms(normalizedPhone, token, role, fullName)
+    const smsResult = await sendInviteSms(normalizedPhone, token, role, fullName)
     
-    logger.info('Invite created and sent successfully', {
+    // Update invite with sent status
+    const updatedInvite = await prisma.invite.update({
+      where: { id: invite.id },
+      data: { sent: smsResult.sent }
+    })
+    
+    logger.info('Invite created and SMS attempt completed', {
       requestId,
       inviteId: invite.id,
       phone: maskPhone(normalizedPhone),
       role,
-      expiresAt
+      expiresAt,
+      sent: smsResult.sent
     })
     
     return {
       ok: true,
-      message: 'دعوت با موفقیت ارسال شد',
+      message: smsResult.sent ? 'دعوت با موفقیت ارسال شد' : 'دعوت ایجاد شد اما ارسال پیامک ناموفق بود',
       data: {
         inviteId: invite.id,
+        sent: smsResult.sent,
         token: process.env.NODE_ENV === 'development' ? token : undefined, // Only return token in dev
         link: process.env.NODE_ENV === 'development' ? `${process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/invite/${token}` : undefined
       }

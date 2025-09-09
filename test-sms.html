@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test SMS</title>
+</head>
+<body>
+    <h1>Test SMS System</h1>
+    <button onclick="testOTP()">Send OTP Test</button>
+    <div id="result"></div>
+
+    <script>
+        async function testOTP() {
+            try {
+                // Get CSRF token first
+                const csrfResponse = await fetch('http://127.0.0.1:3000/api/auth/csrf');
+                const csrfData = await csrfResponse.json();
+                
+                // Send OTP request
+                const response = await fetch('http://127.0.0.1:3000/api/auth/otp/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify({
+                        phone: '09012929276',
+                        purpose: 'login'
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>
+

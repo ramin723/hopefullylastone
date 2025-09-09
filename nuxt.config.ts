@@ -7,6 +7,11 @@ export default defineNuxtConfig({
   
   // PROD: Debug flag configuration - always false in production
   runtimeConfig: {
+    // Private config (server-side only)
+    smsProvider: process.env.SMS_PROVIDER || 'kavenegar',
+    kavenegarApiKey: process.env.KAVENEGAR_API_KEY,
+    kavenegarTemplateOtp: process.env.KAVENEGAR_TEMPLATE_OTP || 'otp-login',
+    
     public: {
       debug: process.env.NODE_ENV === 'development', // Only true in development
       siteUrl: process.env.SITE_URL || 'http://127.0.0.1:3000', // Site URL for absolute links
