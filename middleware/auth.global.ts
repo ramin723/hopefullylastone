@@ -1,3 +1,9 @@
+// Helper function to mask phone number
+function maskPhone(phone: string): string {
+  if (!phone || phone.length <= 5) return '***'
+  return `${phone.slice(0, 3)}***${phone.slice(-2)}`
+}
+
 // PROD: Auth middleware with RBAC and minimal logging for production
 export default defineNuxtRouteMiddleware(async (to) => {
   // Allowlist صفحات عمومی (بدون لاگین)
@@ -52,6 +58,32 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // اگر کاربر لاگین شده و به /login می‌رود، redirect به هاب مناسب
   if (to.path === '/login' && user.value) {
     return redirectToRoleHub(user.value.role)
+  }
+
+  // اگر کاربر لاگین شده و باید رمز اولیه تعیین کند
+  if (user.value && user.value.mustChangePassword) {
+    // مسیرهای مجاز برای کاربران با mustChangePassword=true
+    const allowedPaths = [
+      '/onboarding/set-password',
+      '/logout',
+      '/api/auth/password/set-initial',
+      '/api/auth/logout',
+      '/api/auth/me'
+    ]
+    
+    // اگر به مسیر مجاز می‌رود، اجازه بده
+    if (allowedPaths.includes(to.path)) {
+      return
+    }
+    
+    // در غیر این صورت، به صفحه تعیین رمز هدایت کن
+    console.log('[AUTH MIDDLEWARE] Redirecting to set password', {
+      userId: user.value.id,
+      phone: maskPhone(user.value.phone || ''),
+      targetPath: to.path
+    })
+    
+    return navigateTo('/onboarding/set-password')
   }
 
   // RBAC: بررسی دسترسی بر اساس نقش

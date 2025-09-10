@@ -114,30 +114,19 @@ export default defineEventHandler(async (event) => {
       switch (status) {
         case 'ACTIVE':
           where.usedAt = null
+          where.canceledAt = null
           where.expiresAt = { gt: now }
-          // Exclude cancelled invites (those with meta.cancelled = true)
-          where.OR = [
-            { meta: null },
-            { meta: { path: ['cancelled'], not: true } }
-          ]
           break
         case 'USED':
           where.usedAt = { not: null }
           break
         case 'EXPIRED':
           where.usedAt = null
+          where.canceledAt = null
           where.expiresAt = { lte: now }
-          // Exclude cancelled invites
-          where.OR = [
-            { meta: null },
-            { meta: { path: ['cancelled'], not: true } }
-          ]
           break
-        case 'CANCELLED':
-          where.meta = {
-            path: ['cancelled'],
-            equals: true
-          }
+        case 'CANCELED':
+          where.canceledAt = { not: null }
           break
       }
     }
@@ -166,21 +155,30 @@ export default defineEventHandler(async (event) => {
     ])
     
     // Transform invites for response (mask sensitive data)
-    const transformedInvites = invites.map(invite => ({
-      id: invite.id,
-      role: invite.role,
-      phone: maskPhone(invite.phone),
-      status: getInviteStatus(invite),
-      expiresAt: invite.expiresAt,
-      usedAt: invite.usedAt,
-      createdAt: invite.createdAt,
-      createdBy: {
-        id: invite.createdByUser.id,
-        fullName: invite.createdByUser.fullName,
-        phone: maskPhone(invite.createdByUser.phone)
-      },
-      meta: invite.meta
-    }))
+    const transformedInvites = invites.map(invite => {
+      const inviteWithCanceledAt = invite as any // Type assertion for canceledAt
+      return {
+        id: invite.id,
+        role: invite.role,
+        phone: maskPhone(invite.phone),
+        status: getInviteStatus({
+          expiresAt: invite.expiresAt,
+          usedAt: invite.usedAt,
+          canceledAt: inviteWithCanceledAt.canceledAt,
+          meta: invite.meta
+        }),
+        expiresAt: invite.expiresAt,
+        usedAt: invite.usedAt,
+        canceledAt: inviteWithCanceledAt.canceledAt,
+        createdAt: invite.createdAt,
+        createdBy: {
+          id: invite.createdByUser.id,
+          fullName: invite.createdByUser.fullName,
+          phone: maskPhone(invite.createdByUser.phone)
+        },
+        meta: invite.meta
+      }
+    })
     
     const totalPages = Math.ceil(total / limit)
     

@@ -1,103 +1,103 @@
-// server/api/admin/invites/[id]/cancel.post.ts
+/**
+ * POST /api/admin/invites/[id]/cancel
+ * 
+ * Cancel an active invite
+ * 
+ * Response:
+ * {
+ *   "ok": true,
+ *   "canceledAt": string,
+ *   "id": number
+ * }
+ * 
+ * Security: Requires ADMIN role, includes CSRF protection
+ */
+
 import { prisma } from '../../../../utils/db'
+import { requireAuth } from '../../../../utils/auth'
 import { createRequestLogger } from '../../../../utils/logger'
 import { randomUUID } from 'crypto'
 import { maskPhone } from '../../../../utils/rateLimiter'
-import { requireAuth, requireRole } from '../../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const requestId = randomUUID()
   const logger = createRequestLogger(requestId)
   
-  logger.info('Admin invite cancellation started')
+  logger.info('Admin invite cancel started')
   
   // Check authentication and admin role
   const user = await requireAuth(event)
   requireRole(user, 'ADMIN')
   
-  const inviteId = getRouterParam(event, 'id')
+  const inviteId = parseInt(getRouterParam(event, 'id') || '0')
   
-  if (!inviteId || isNaN(Number(inviteId))) {
-    logger.error('Invalid invite ID', { requestId, inviteId })
+  if (!inviteId || inviteId <= 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid invite ID'
+      statusMessage: 'Bad Request',
+      message: 'Invalid invite ID'
     })
   }
   
   try {
-    // Find the invite
-    const invite = await prisma.invite.findUnique({
-      where: { id: Number(inviteId) },
-      include: {
-        createdByUser: {
-          select: {
-            id: true,
-            fullName: true
-          }
-        }
+    // Cancel invite in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Find the invite
+      const invite = await tx.invite.findUnique({
+        where: { id: inviteId },
+        include: { createdByUser: true }
+      })
+      
+      if (!invite) {
+        throw createError({
+          statusCode: 404,
+          statusMessage: 'Not Found',
+          message: 'دعوت یافت نشد'
+        })
       }
+      
+      // Check if already canceled or used
+      if (invite.canceledAt) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Conflict',
+          message: 'این دعوت قبلاً لغو شده است'
+        })
+      }
+      
+      if (invite.usedAt) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Conflict',
+          message: 'این دعوت قبلاً استفاده شده است'
+        })
+      }
+      
+      // Cancel the invite
+      const canceledAt = new Date()
+      const updatedInvite = await tx.invite.update({
+        where: { id: inviteId },
+        data: {
+          canceledAt,
+          expiresAt: canceledAt // Set expiresAt to now to make it immediately expired
+        }
+      })
+      
+      return { invite: updatedInvite, canceledAt }
     })
     
-    if (!invite) {
-      logger.warn('Invite not found', { requestId, inviteId })
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Invite not found'
-      })
-    }
-    
-    // Check if invite is already used or expired
-    if (invite.usedAt) {
-      logger.warn('Cannot cancel used invite', { 
-        requestId, 
-        inviteId,
-        usedAt: invite.usedAt
-      })
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'Cannot cancel used invite',
-        message: 'این دعوت قبلاً استفاده شده است'
-      })
-    }
-    
-    if (new Date() > invite.expiresAt) {
-      logger.warn('Cannot cancel expired invite', { 
-        requestId, 
-        inviteId,
-        expiresAt: invite.expiresAt
-      })
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'Cannot cancel expired invite',
-        message: 'این دعوت منقضی شده است'
-      })
-    }
-    
-    // Cancel the invite by setting meta.cancelled = true
-    const currentMeta = invite.meta as any || {}
-    await prisma.invite.update({
-      where: { id: Number(inviteId) },
-      data: { 
-        meta: {
-          ...currentMeta,
-          cancelled: true,
-          cancelledAt: new Date().toISOString(),
-          cancelledBy: user.id
-        }
-      }
-    })
-    
-    logger.info('Invite cancelled successfully', {
+    logger.info('Invite canceled successfully', {
       requestId,
       inviteId,
-      phone: maskPhone(invite.phone),
-      role: invite.role
+      phone: maskPhone(result.invite.phone),
+      role: result.invite.role,
+      canceledAt: result.canceledAt
     })
     
     return {
       ok: true,
-      message: 'دعوت با موفقیت لغو شد'
+      canceledAt: result.canceledAt.toISOString(),
+      id: result.invite.id
     }
     
   } catch (error: any) {
@@ -105,7 +105,7 @@ export default defineEventHandler(async (event) => {
       throw error
     }
     
-    logger.error('Invite cancellation failed', {
+    logger.error('Invite cancel failed', {
       requestId,
       inviteId,
       error: error instanceof Error ? error.message : 'Unknown error'

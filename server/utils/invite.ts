@@ -2,7 +2,7 @@
 import crypto from 'node:crypto'
 import { normalizePhone } from './otp'
 import { maskPhone } from './rateLimiter'
-import { sendInviteViaLookup } from './sms'
+import { sendInviteViaVerifyLookup } from './sms'
 
 /**
  * Generate a URL-safe random token for invite
@@ -71,7 +71,7 @@ export async function sendInviteSms(
   const normalizedPhone = normalizePhone(phone)
   
   try {
-    const result = await sendInviteViaLookup({ 
+    const result = await sendInviteViaVerifyLookup({ 
       phone: normalizedPhone, 
       token: token,
       template: 'invite-code'
@@ -123,17 +123,41 @@ export function isInviteValid(invite: { expiresAt: Date; usedAt: Date | null }):
 }
 
 /**
+ * Check if invite is active (not used, not canceled, not expired)
+ * @param invite Invite object
+ * @returns true if active, false otherwise
+ */
+export function inviteIsActive(invite: { usedAt: Date | null; canceledAt: Date | null; expiresAt: Date }): boolean {
+  return !invite.usedAt && !invite.canceledAt && invite.expiresAt > new Date()
+}
+
+/**
+ * Get where clause for active invites
+ * @param phone Phone number
+ * @param role User role
+ * @returns Where clause object
+ */
+export function inviteActiveWhere(phone: string, role: 'MECHANIC' | 'VENDOR') {
+  return {
+    phone: normalizePhone(phone),
+    role,
+    usedAt: null,
+    canceledAt: null,
+    expiresAt: { gt: new Date() }
+  }
+}
+
+/**
  * Get invite status for display
  * @param invite Invite object
  * @returns Status string
  */
-export function getInviteStatus(invite: { expiresAt: Date; usedAt: Date | null; meta?: any }): string {
-  if (isInviteUsed(invite.usedAt)) {
+export function getInviteStatus(invite: { expiresAt: Date; usedAt: Date | null; canceledAt: Date | null; meta?: any }): string {
+  if (invite.usedAt) {
     return 'USED'
   }
-  // Check if invite is cancelled
-  if (invite.meta && invite.meta.cancelled === true) {
-    return 'CANCELLED'
+  if (invite.canceledAt) {
+    return 'CANCELED'
   }
   if (isInviteExpired(invite.expiresAt)) {
     return 'EXPIRED'

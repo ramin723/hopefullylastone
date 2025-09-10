@@ -6,7 +6,7 @@ import { rateLimitComposite, getClientIP, hashPhone, maskPhone } from '../../../
 import { appendResponseHeader } from 'h3'
 import { RequestOtpSchema } from '../../../validators/otp'
 import { generateNumericCode, hashCode, normalizePhone } from '../../../utils/otp'
-import { sendOtpViaSms } from '../../../utils/sms'
+import { sendOtpViaVerifyLookup } from '../../../utils/sms'
 
 export default defineEventHandler(async (event) => {
   const requestId = randomUUID()
@@ -110,19 +110,40 @@ export default defineEventHandler(async (event) => {
       }
     })
     
-    // Send SMS
-    await sendOtpViaSms({ phone: normalizedPhone, code })
-    
-    logger.info('OTP generated and sent successfully', {
-      requestId,
-      phone: maskPhone(normalizedPhone),
-      expiresAt
-    })
-    
-    // Always return the same message for security
-    return {
-      ok: true,
-      message: 'اگر شماره معتبر باشد، کد ارسال شد'
+    // Send SMS via VerifyLookup only
+    try {
+      await sendOtpViaVerifyLookup({ phone: normalizedPhone, code, template: 'otp-login' })
+      
+      logger.info('OTP generated and sent successfully', {
+        requestId,
+        phone: maskPhone(normalizedPhone),
+        expiresAt
+      })
+      
+      // Always return the same message for security
+      return {
+        ok: true,
+        message: 'کد به شماره ارسال شد'
+      }
+    } catch (smsError: any) {
+      // اگر SMS شکست خورد، OTP را از دیتابیس حذف کن
+      await prisma.otpCode.deleteMany({
+        where: {
+          phone: normalizedPhone,
+          purpose,
+          codeHash,
+          isUsed: false
+        }
+      })
+      
+      logger.error('OTP SMS send failed, OTP deleted', {
+        requestId,
+        phone: maskPhone(normalizedPhone),
+        error: smsError.message
+      })
+      
+      // خطا را مستقیماً از SMS utility برگردان
+      throw smsError
     }
     
   } catch (error) {

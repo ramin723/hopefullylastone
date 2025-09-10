@@ -9,8 +9,12 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Private config (server-side only)
     smsProvider: process.env.SMS_PROVIDER || 'kavenegar',
-    kavenegarApiKey: process.env.KAVENEGAR_API_KEY,
-    kavenegarTemplateOtp: process.env.KAVENEGAR_TEMPLATE_OTP || 'otp-login',
+    kavenegar: {
+      apiKey: process.env.KAVENEGAR_API_KEY,
+      templateOtp: process.env.KAVENEGAR_TEMPLATE_OTP || 'otp-login',
+      templateInvite: process.env.KAVENEGAR_TEMPLATE_INVITE || 'invite-code',
+      devBypass: process.env.KAVENEGAR_DEV_BYPASS === '1' || process.env.KAVENEGAR_DEV_BYPASS === 'true'
+    },
     
     public: {
       debug: process.env.NODE_ENV === 'development', // Only true in development

@@ -1,5 +1,5 @@
 // check-admin.js - بررسی کاربران ADMIN
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
 
 async function checkAdmin() {
   try {

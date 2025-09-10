@@ -322,7 +322,7 @@ const statusOptions = [
   { value: 'ACTIVE', label: 'فعال' },
   { value: 'USED', label: 'استفاده شده' },
   { value: 'EXPIRED', label: 'منقضی شده' },
-  { value: 'CANCELLED', label: 'لغو شده' }
+  { value: 'CANCELED', label: 'لغو شده' }
 ]
 
 // Methods
@@ -369,7 +369,19 @@ const createInvite = async () => {
       await navigateTo(`/admin/invites?justCreated=${inviteId}`)
     }
   } catch (error: any) {
-    const errorMessage = error.data?.message || error.statusMessage || 'خطا در ارسال دعوت'
+    // Map error codes to user-friendly messages
+    let errorMessage = 'خطا در ارسال دعوت'
+    
+    if (error?.statusCode === 502) {
+      errorMessage = 'ایجاد دعوت انجام نشد (ارسال پیامک ناموفق).'
+    } else if (error?.statusCode === 429) {
+      errorMessage = 'تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه صبر کنید.'
+    } else if (error?.statusCode === 409) {
+      errorMessage = error.data?.message || 'دعوت فعالی برای این شماره و نقش از قبل وجود دارد'
+    } else {
+      errorMessage = error.data?.message || error.statusMessage || 'خطا در ارسال دعوت'
+    }
+    
     showToast(errorMessage, 'error')
   } finally {
     creating.value = false
@@ -387,7 +399,16 @@ const cancelInvite = async (inviteId: number) => {
       loadInvites()
     }
   } catch (error: any) {
-    const errorMessage = error.data?.message || error.statusMessage || 'خطا در لغو دعوت'
+    let errorMessage = 'خطا در لغو دعوت'
+    
+    if (error?.statusCode === 404) {
+      errorMessage = 'دعوت یافت نشد'
+    } else if (error?.statusCode === 409) {
+      errorMessage = error.data?.message || 'این دعوت قبلاً لغو یا استفاده شده است'
+    } else {
+      errorMessage = error.data?.message || error.statusMessage || 'خطا در لغو دعوت'
+    }
+    
     showToast(errorMessage, 'error')
   }
 }
@@ -432,7 +453,7 @@ const getStatusClass = (status: string) => {
     case 'ACTIVE': return 'bg-green-100 text-green-800'
     case 'USED': return 'bg-blue-100 text-blue-800'
     case 'EXPIRED': return 'bg-red-100 text-red-800'
-    case 'CANCELLED': return 'bg-orange-100 text-orange-800'
+    case 'CANCELED': return 'bg-orange-100 text-orange-800'
     default: return 'bg-gray-100 text-gray-800'
   }
 }
@@ -442,7 +463,7 @@ const getStatusText = (status: string) => {
     case 'ACTIVE': return 'فعال'
     case 'USED': return 'استفاده شده'
     case 'EXPIRED': return 'منقضی شده'
-    case 'CANCELLED': return 'لغو شده'
+    case 'CANCELED': return 'لغو شده'
     default: return 'نامشخص'
   }
 }

@@ -2,18 +2,19 @@
 import Kavenegar from 'kavenegar'
 
 type OtpParams = { phone: string; code: string; template?: string }
+type InviteParams = { phone: string; token: string; template?: string }
 
 let kapi: any | null = null
 function api() {
   if (!kapi) {
     const config = useRuntimeConfig()
-    const { smsProvider, kavenegarApiKey } = config
+    const { smsProvider, kavenegar } = config
     
     // بررسی کانفیگ SMS
-    if (smsProvider !== 'kavenegar' || !kavenegarApiKey) {
+    if (smsProvider !== 'kavenegar' || !kavenegar?.apiKey) {
       console.warn('[SMS] SMS provider not configured properly', {
         provider: smsProvider,
-        hasKey: !!kavenegarApiKey
+        hasKey: !!kavenegar?.apiKey
       })
       throw createError({
         statusCode: 500,
@@ -21,7 +22,7 @@ function api() {
       })
     }
     
-    kapi = Kavenegar.KavenegarApi({ apikey: kavenegarApiKey })
+    kapi = Kavenegar.KavenegarApi({ apikey: kavenegar.apiKey })
   }
   return kapi
 }
@@ -54,140 +55,264 @@ function normalizePhone(phone: string): string {
   return cleaned
 }
 
-// تابع عمومی برای ارسال پیامک ساده
-export async function sendSms(phone: string, message: string) {
-  const devBypass = String(process.env.SMS_DEV_BYPASS || 'false') === 'true'
-  const normalizedPhone = normalizePhone(phone)
-
-  if (devBypass) {
-    console.info('[SMS DEV BYPASS] SMS would be sent', { phoneMasked: maskPhone(normalizedPhone), message })
-    return { ok: true, bypass: true }
-  }
-
-  const simpleSend = () =>
-    new Promise((resolve, reject) => {
-      const base: any = { receptor: normalizedPhone, message }
-      const sender = process.env.SMS_FROM
-      if (sender && sender.trim()) base.sender = sender  // 👈 فقط اگر واقعا داری
-      api().Send(base, (res: any, status: number) => {
-        if (status >= 200 && status < 300) resolve(res)
-        else reject(Object.assign(new Error('Kavenegar Send failed'), { status, res }))
-      })
-    })
-
-  try {
-    const res = await simpleSend()
-    console.info('[SMS] Message sent', { phoneMasked: maskPhone(normalizedPhone) })
-    return { ok: true, provider: 'kavenegar', method: 'send', res }
-  } catch (e: any) {
-    console.error('[SMS] Send failed', { phoneMasked: maskPhone(normalizedPhone), error: e.message })
-    throw e
+// Map خطاهای Kavenegar به پیام‌های کاربرپسند
+function mapKavenegarError(status: number, response?: any): { statusCode: number; message: string } {
+  switch (status) {
+    case 400:
+      return { statusCode: 400, message: 'درخواست نامعتبر است' }
+    case 401:
+      return { statusCode: 401, message: 'احراز هویت ناموفق' }
+    case 403:
+      return { statusCode: 403, message: 'دسترسی غیرمجاز' }
+    case 404:
+      return { statusCode: 404, message: 'سرویس یافت نشد' }
+    case 412:
+      return { statusCode: 412, message: 'شماره تلفن نامعتبر است' }
+    case 413:
+      return { statusCode: 413, message: 'پیام خیلی طولانی است' }
+    case 422:
+      return { statusCode: 422, message: 'الگوی پیامک یافت نشد' }
+    case 429:
+      return { statusCode: 429, message: 'تعداد درخواست‌ها بیش از حد مجاز است' }
+    case 500:
+      return { statusCode: 500, message: 'خطای داخلی سرور' }
+    case 502:
+      return { statusCode: 502, message: 'سرویس پیامک موقتاً در دسترس نیست' }
+    case 503:
+      return { statusCode: 503, message: 'سرویس پیامک موقتاً در دسترس نیست' }
+    default:
+      return { statusCode: 502, message: 'ارسال پیامک موقتاً با مشکل مواجه شد' }
   }
 }
 
-export async function sendOtpViaSms({ phone, code, template }: OtpParams) {
-  const devBypass = String(process.env.SMS_DEV_BYPASS || 'false') === 'true'
+// تابع اصلی برای ارسال OTP فقط از طریق VerifyLookup
+export async function sendOtpViaVerifyLookup({ phone, code, template }: OtpParams) {
   const config = useRuntimeConfig()
-  const tpl = template || config.kavenegarTemplateOtp || 'otp-login'
+  const devBypass = config.kavenegar?.devBypass || false
+  const tpl = template || config.kavenegar?.templateOtp || 'otp-login'
   const normalizedPhone = normalizePhone(phone)
 
   if (devBypass) {
-    console.info('[SMS DEV BYPASS] OTP would be sent', { phoneMasked: maskPhone(normalizedPhone), code })
+    console.info('[SMS DEV BYPASS] OTP would be sent', { 
+      phoneMasked: maskPhone(normalizedPhone),
+      template: tpl
+    })
     return { ok: true, bypass: true }
   }
 
-  // 1) سعی می‌کنیم با VerifyLookup (الگو) بفرستیم
-  const verifyLookup = () =>
-    new Promise((resolve, reject) => {
+  try {
+    const result = await new Promise((resolve, reject) => {
       api().VerifyLookup(
         { receptor: normalizedPhone, token: code, template: tpl },
         (res: any, status: number) => {
-          if (status >= 200 && status < 300) resolve(res)
-          else reject(Object.assign(new Error('Kavenegar VerifyLookup failed'), { status, res }))
+          if (status >= 200 && status < 300) {
+            resolve({ res, status })
+          } else {
+            reject(Object.assign(new Error('Kavenegar VerifyLookup failed'), { status, res }))
+          }
         }
       )
-    })
+    }) as { res: any; status: number }
 
-  // 2) اگر الگو خطا داد، fallback: پیامک ساده
-  const simpleSend = (message: string) =>
-    new Promise((resolve, reject) => {
-      const base: any = { receptor: normalizedPhone, message }
-      const sender = process.env.SMS_FROM
-      if (sender && sender.trim()) base.sender = sender  // 👈 فقط اگر واقعا داری
-      api().Send(base, (res: any, status: number) => {
-        if (status >= 200 && status < 300) resolve(res)
-        else reject(Object.assign(new Error('Kavenegar Send failed'), { status, res }))
-      })
-    })
-
-  try {
-    const res = await verifyLookup()
-    console.info('[SMS] OTP sent via VerifyLookup', { phoneMasked: maskPhone(normalizedPhone) })
-    return { ok: true, provider: 'kavenegar', method: 'verifylookup', res }
-  } catch (e1: any) {
-    console.warn('[SMS] VerifyLookup failed, trying fallback Send', {
+    console.info('[SMS] OTP sent via VerifyLookup', { 
       phoneMasked: maskPhone(normalizedPhone),
-      status: e1?.status,
-      errMsg: e1?.message,
-      raw: e1?.res || e1 // 👈 اینو اضافه کن تا بدنه‌ی خطا رو ببینیم
+      template: tpl,
+      status: result.status
     })
-    const msg = `کد ورود شما: ${code}`
-    const res2 = await simpleSend(msg)
-    console.info('[SMS] OTP sent via Send fallback', { phoneMasked: maskPhone(normalizedPhone) })
-    return { ok: true, provider: 'kavenegar', method: 'send', res: res2 }
+    
+    return { ok: true, provider: 'kavenegar', method: 'verifylookup', res: result.res }
+  } catch (error: any) {
+    const errorInfo = mapKavenegarError(error?.status || 500, error?.res)
+    
+    console.error('[SMS] VerifyLookup failed', {
+      phoneMasked: maskPhone(normalizedPhone),
+      template: tpl,
+      status: error?.status,
+      error: error?.message
+    })
+    
+    // اگر سرویس status/errMsg می‌دهد، در سطح debug لاگ کن
+    if (error?.res && typeof error.res === 'object') {
+      console.debug('[SMS DEBUG] Kavenegar response details', {
+        phoneMasked: maskPhone(normalizedPhone),
+        template: tpl,
+        response: error.res
+      })
+    }
+    
+    throw createError({
+      statusCode: errorInfo.statusCode,
+      statusMessage: 'SMS Service Unavailable',
+      message: errorInfo.message
+    })
   }
 }
 
-type InviteParams = { phone: string; token: string; template?: string }
-
-export async function sendInviteViaLookup({ phone, token, template }: InviteParams) {
-  const devBypass = String(process.env.SMS_DEV_BYPASS || 'false') === 'true'
+// تابع اصلی برای ارسال Invite فقط از طریق VerifyLookup
+export async function sendInviteViaVerifyLookup({ phone, token, template }: InviteParams) {
   const config = useRuntimeConfig()
-  const tpl = template || 'invite-code' // template پیش‌فرض برای دعوت
+  const devBypass = config.kavenegar?.devBypass || false
+  const tpl = template || config.kavenegar?.templateInvite || 'invite-code'
   const normalizedPhone = normalizePhone(phone)
 
   if (devBypass) {
-    console.info('[SMS DEV BYPASS] Invite would be sent', { phoneMasked: maskPhone(normalizedPhone), token })
+    console.info('[SMS DEV BYPASS] Invite would be sent', { 
+      phoneMasked: maskPhone(normalizedPhone),
+      template: tpl
+    })
     return { ok: true, bypass: true }
   }
 
-  // 1) سعی می‌کنیم با VerifyLookup (الگو) بفرستیم
-  const verifyLookup = () =>
-    new Promise((resolve, reject) => {
+  try {
+    const result = await new Promise((resolve, reject) => {
       api().VerifyLookup(
         { receptor: normalizedPhone, token: token, template: tpl },
         (res: any, status: number) => {
-          if (status >= 200 && status < 300) resolve(res)
-          else reject(Object.assign(new Error('Kavenegar VerifyLookup failed'), { status, res }))
+          if (status >= 200 && status < 300) {
+            resolve({ res, status })
+          } else {
+            reject(Object.assign(new Error('Kavenegar VerifyLookup failed'), { status, res }))
+          }
         }
       )
-    })
+    }) as { res: any; status: number }
 
-  // 2) اگر الگو خطا داد، fallback: پیامک ساده
-  const simpleSend = (message: string) =>
-    new Promise((resolve, reject) => {
-      const base: any = { receptor: normalizedPhone, message }
-      // هیچ پارامتر sender ست نکن
-      api().Send(base, (res: any, status: number) => {
-        if (status >= 200 && status < 300) resolve(res)
-        else reject(Object.assign(new Error('Kavenegar Send failed'), { status, res }))
-      })
+    console.info('[SMS] Invite sent via VerifyLookup', { 
+      phoneMasked: maskPhone(normalizedPhone),
+      template: tpl,
+      status: result.status
     })
+    
+    return { ok: true, provider: 'kavenegar', method: 'verifylookup', res: result.res }
+  } catch (error: any) {
+    const errorInfo = mapKavenegarError(error?.status || 500, error?.res)
+    
+    console.error('[SMS] VerifyLookup failed', {
+      phoneMasked: maskPhone(normalizedPhone),
+      template: tpl,
+      status: error?.status,
+      error: error?.message
+    })
+    
+    // اگر سرویس status/errMsg می‌دهد، در سطح debug لاگ کن
+    if (error?.res && typeof error.res === 'object') {
+      console.debug('[SMS DEBUG] Kavenegar response details', {
+        phoneMasked: maskPhone(normalizedPhone),
+        template: tpl,
+        response: error.res
+      })
+    }
+    
+    throw createError({
+      statusCode: errorInfo.statusCode,
+      statusMessage: 'SMS Service Unavailable',
+      message: errorInfo.message
+    })
+  }
+}
+
+// Backward compatibility aliases
+export const sendOtpViaSms = sendOtpViaVerifyLookup
+export const sendInviteViaLookup = sendInviteViaVerifyLookup
+
+// Debug helper function for ADMIN testing - فقط VerifyLookup
+export async function kavenegarVerifyLookupDebug(params: {
+  receptor: string;
+  template: string;
+  token: string;
+}): Promise<{ 
+  ok: boolean; 
+  provider: 'kavenegar'; 
+  attempted: 'verifylookup'; 
+  normalized: string; 
+  masked: string; 
+  template: string; 
+  tokenSample: string; 
+  raw?: any; 
+  status?: number; 
+  error?: string;
+  devBypass?: boolean;
+}> {
+  const config = useRuntimeConfig()
+  const { kavenegar } = config
+  const normalized = normalizePhone(params.receptor)
+  const masked = maskPhone(normalized)
+  const tokenSample = params.token ? '***' : ''
+
+  // Check config sanity
+  if (!kavenegar?.apiKey) {
+    return {
+      ok: false,
+      provider: 'kavenegar',
+      attempted: 'verifylookup',
+      normalized,
+      masked,
+      template: params.template,
+      tokenSample,
+      error: 'Kavenegar API key not configured'
+    }
+  }
+
+  const devBypass = kavenegar?.devBypass || false
+
+  if (devBypass) {
+    console.info('[SMS DEBUG] verifylookup template=' + params.template + ' status=bypass phone=' + masked + ' ok=true')
+    return {
+      ok: true,
+      provider: 'kavenegar',
+      attempted: 'verifylookup',
+      normalized,
+      masked,
+      template: params.template,
+      tokenSample,
+      devBypass: true
+    }
+  }
 
   try {
-    const res = await verifyLookup()
-    console.info('[SMS] Invite sent via VerifyLookup', { phoneMasked: maskPhone(normalizedPhone) })
-    return { ok: true, provider: 'kavenegar', method: 'verifylookup', res }
-  } catch (e1: any) {
-    console.warn('[SMS] VerifyLookup failed, trying fallback Send', {
-      phoneMasked: maskPhone(normalizedPhone),
-      status: e1?.status,
-      errMsg: e1?.message,
-      raw: e1?.res || e1
-    })
-    const msg = `دعوت شما: ${token}`
-    const res2 = await simpleSend(msg)
-    console.info('[SMS] Invite sent via Send fallback', { phoneMasked: maskPhone(normalizedPhone) })
-    return { ok: true, provider: 'kavenegar', method: 'send', res: res2 }
+    const result = await new Promise((resolve, reject) => {
+      api().VerifyLookup(
+        { 
+          receptor: normalized, 
+          token: params.token, 
+          template: params.template 
+        },
+        (res: any, status: number) => {
+          resolve({ res, status })
+        }
+      )
+    }) as { res: any; status: number }
+
+    const success = result.status >= 200 && result.status < 300
+    const logLevel = success ? 'info' : 'warn'
+    const statusStr = result.status?.toString() || 'na'
+    
+    console[logLevel]('[SMS DEBUG] verifylookup template=' + params.template + ' status=' + statusStr + ' phone=' + masked + ' ok=' + success)
+
+    return {
+      ok: success,
+      provider: 'kavenegar',
+      attempted: 'verifylookup',
+      normalized,
+      masked,
+      template: params.template,
+      tokenSample,
+      raw: result.res,
+      status: result.status,
+      error: success ? undefined : `HTTP ${result.status}`
+    }
+  } catch (error: any) {
+    console.warn('[SMS DEBUG] verifylookup template=' + params.template + ' status=error phone=' + masked + ' ok=false')
+    
+    return {
+      ok: false,
+      provider: 'kavenegar',
+      attempted: 'verifylookup',
+      normalized,
+      masked,
+      template: params.template,
+      tokenSample,
+      error: error?.message || 'Unknown error'
+    }
   }
 }

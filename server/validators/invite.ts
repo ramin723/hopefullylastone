@@ -65,7 +65,7 @@ export const CreateInviteSchema = z.object({
 export const InviteListQuerySchema = z.object({
   role: z.enum(['MECHANIC', 'VENDOR']).optional(),
   phone: z.string().optional(),
-  status: z.enum(['ACTIVE', 'USED', 'EXPIRED', 'CANCELLED']).optional(),
+  status: z.enum(['ACTIVE', 'USED', 'EXPIRED', 'CANCELED']).optional(),
   page: z.string().regex(/^\d+$/).transform(Number).default(1),
   limit: z.string().regex(/^\d+$/).transform(Number).default(20)
 })

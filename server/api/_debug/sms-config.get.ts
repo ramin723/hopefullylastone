@@ -7,14 +7,18 @@ export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event, ['ADMIN'])
   
   const config = useRuntimeConfig()
-  const { smsProvider, kavenegarApiKey, kavenegarTemplateOtp } = config
+  const { smsProvider, kavenegar } = config
   
   // فقط اطلاعات غیرحساس برگردان
   return {
     ok: true,
     provider: smsProvider,
-    hasKey: !!kavenegarApiKey,
-    template: kavenegarTemplateOtp,
+    kavenegar: {
+      hasApiKey: !!kavenegar?.apiKey,
+      templateOtp: kavenegar?.templateOtp || 'otp-login',
+      templateInvite: kavenegar?.templateInvite || 'invite-code',
+      devBypass: kavenegar?.devBypass || false
+    },
     envNodeEnv: process.env.NODE_ENV || 'development'
   }
 })

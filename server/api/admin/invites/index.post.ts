@@ -41,7 +41,8 @@ import { CreateInviteSchema } from '../../../validators/invite'
 import { 
   generateInviteToken, 
   hashToken, 
-  sendInviteSms
+  sendInviteSms,
+  inviteActiveWhere
 } from '../../../utils/invite'
 import { normalizePhone } from '../../../utils/otp'
 import { requireAuth, requireRole } from '../../../utils/auth'
@@ -141,12 +142,7 @@ export default defineEventHandler(async (event) => {
     
     // Check if there's an active invite for this phone/role
     const existingInvite = await prisma.invite.findFirst({
-      where: {
-        phone: normalizedPhone,
-        role,
-        usedAt: null,
-        expiresAt: { gt: new Date() }
-      }
+      where: inviteActiveWhere(normalizedPhone, role)
     })
     
     if (existingInvite) {
@@ -179,42 +175,55 @@ export default defineEventHandler(async (event) => {
     if (province) meta.province = province
     if (postalCode) meta.postalCode = postalCode
     
-    // Create invite
-    const invite = await prisma.invite.create({
-      data: {
-        role,
-        phone: normalizedPhone,
-        codeHash,
-        expiresAt,
-        createdBy: user.id,
-        meta: Object.keys(meta).length > 0 ? meta : null
+    // Create invite and send SMS in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create invite
+      const invite = await tx.invite.create({
+        data: {
+          role,
+          phone: normalizedPhone,
+          codeHash,
+          expiresAt,
+          createdBy: user.id,
+          meta: Object.keys(meta).length > 0 ? meta : null
+        }
+      })
+      
+      // Send SMS
+      const smsResult = await sendInviteSms(normalizedPhone, token, role, fullName)
+      
+      if (!smsResult.sent) {
+        // اگر SMS شکست خورد، transaction را rollback کن
+        throw createError({
+          statusCode: 502,
+          statusMessage: 'SMS Service Unavailable',
+          message: smsResult.error || 'ایجاد دعوت انجام نشد (ارسال پیامک ناموفق).'
+        })
       }
+      
+      // Update invite with sent status
+      const updatedInvite = await tx.invite.update({
+        where: { id: invite.id },
+        data: { sent: smsResult.sent }
+      })
+      
+      return { invite: updatedInvite, smsResult }
     })
     
-    // Send SMS
-    const smsResult = await sendInviteSms(normalizedPhone, token, role, fullName)
-    
-    // Update invite with sent status
-    const updatedInvite = await prisma.invite.update({
-      where: { id: invite.id },
-      data: { sent: smsResult.sent }
-    })
-    
-    logger.info('Invite created and SMS attempt completed', {
+    logger.info('Invite created and SMS sent successfully', {
       requestId,
-      inviteId: invite.id,
+      inviteId: result.invite.id,
       phone: maskPhone(normalizedPhone),
       role,
-      expiresAt,
-      sent: smsResult.sent
+      expiresAt
     })
     
     return {
       ok: true,
-      message: smsResult.sent ? 'دعوت با موفقیت ارسال شد' : 'دعوت ایجاد شد اما ارسال پیامک ناموفق بود',
+      message: 'دعوت با موفقیت ارسال شد',
       data: {
-        inviteId: invite.id,
-        sent: smsResult.sent,
+        inviteId: result.invite.id,
+        sent: result.smsResult.sent,
         token: process.env.NODE_ENV === 'development' ? token : undefined, // Only return token in dev
         link: process.env.NODE_ENV === 'development' ? `${process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/invite/${token}` : undefined
       }

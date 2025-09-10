@@ -8,17 +8,18 @@ datasource db {
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  fullName      String
-  phone         String         @unique
-  passwordHash  String
-  role          UserRole
-  status        String         @default("ACTIVE")
-  createdAt     DateTime       @default(now())
-  Mechanic      Mechanic?
-  refreshTokens RefreshToken[]
-  Vendor        Vendor?
-  invites       Invite[]
+  id                  Int            @id @default(autoincrement())
+  fullName            String
+  phone               String         @unique
+  passwordHash        String
+  mustChangePassword  Boolean        @default(false)
+  role                UserRole
+  status              String         @default("ACTIVE")
+  createdAt           DateTime       @default(now())
+  Mechanic            Mechanic?
+  refreshTokens       RefreshToken[]
+  Vendor              Vendor?
+  invites             Invite[]
 }
 
 model RefreshToken {
@@ -206,6 +207,7 @@ model Invite {
   codeHash    String
   expiresAt   DateTime
   usedAt      DateTime?
+  canceledAt  DateTime?
   createdBy   Int
   createdAt   DateTime  @default(now())
   sent        Boolean   @default(false)

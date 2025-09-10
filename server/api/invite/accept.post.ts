@@ -200,12 +200,27 @@ export default defineEventHandler(async (event) => {
           })
         }
         
+        // If user has no password, set mustChangePassword flag
+        if (!user.passwordHash || user.passwordHash === '') {
+          user = await tx.user.update({
+            where: { id: user.id },
+            data: { 
+              mustChangePassword: true
+            } as any,
+            include: {
+              Mechanic: invite.role === 'MECHANIC',
+              Vendor: invite.role === 'VENDOR'
+            }
+          })
+        }
+        
       } else {
         // Create new user
         const userData: any = {
           fullName: (invite.meta as any)?.fullName || 'کاربر جدید',
           phone: normalizedPhone,
           passwordHash: '', // Will be set when user sets password
+          mustChangePassword: true, // User must set password on first login
           role: invite.role,
           status: 'ACTIVE'
         }
@@ -329,7 +344,8 @@ export default defineEventHandler(async (event) => {
       phone: maskPhone(normalizedPhone),
       userCreated: result.userCreated,
       roleEntityCreated: result.roleEntityCreated,
-      qrGenerated: result.qrGenerated
+      qrGenerated: result.qrGenerated,
+      mustChangePassword: (result.user as any).mustChangePassword
     })
     
     return {

@@ -5,8 +5,6 @@ import { rateLimitComposite, getClientIP, maskPhone } from '../../../utils/rateL
 import { generateMechanicCode } from '../../../utils/ids'
 import logger from '../../../utils/logger'
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
-import { randomBytes } from 'crypto'
 
 // Request validation schema
 const CreateMechanicSchema = z.object({
@@ -87,16 +85,14 @@ export default defineEventHandler(async (event: any) => {
       }
     } else {
       // Create new user
-      const tempPassword = randomBytes(12).toString('base64url')
-      const passwordHash = await bcrypt.hash(tempPassword, 10)
-      
       const newUser = await prisma.user.create({
         data: {
           fullName,
           phone,
-          passwordHash,
+          passwordHash: '', // No password set initially
+          mustChangePassword: true, // User must set password on first login
           role: 'MECHANIC'
-        },
+        } as any,
         select: { id: true }
       })
       

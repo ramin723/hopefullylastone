@@ -223,10 +223,17 @@ async function onOtpRequest(e?: Event) {
       purpose: 'login'
     }) as any
 
-    successMsg.value = res.message || 'کد ارسال شد'
+    successMsg.value = res.message || 'کد به شماره ارسال شد'
     otpSent.value = true
   } catch (err: any) {
-    errorMsg.value = err?.data?.statusMessage || 'خطا در ارسال کد'
+    // Map error codes to user-friendly messages
+    if (err?.statusCode === 502) {
+      errorMsg.value = 'ارسال پیامک موقتاً با مشکل مواجه شد. لطفاً چند دقیقه بعد دوباره تلاش کنید.'
+    } else if (err?.statusCode === 429) {
+      errorMsg.value = 'تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه صبر کنید.'
+    } else {
+      errorMsg.value = err?.data?.message || err?.data?.statusMessage || 'خطا در ارسال کد'
+    }
   } finally {
     otpRequestLoading.value = false
   }
