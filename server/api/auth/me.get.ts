@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
   // Get user from database
   const user = await prisma.user.findUnique({ 
     where: { id: payload.userId },
-    select: { id: true, role: true, fullName: true, phone: true }
+    select: { id: true, role: true, fullName: true, phone: true, mustChangePassword: true }
   })
   
   if (!user) {
@@ -78,7 +78,8 @@ export default defineEventHandler(async (event) => {
       id: user.id, 
       role: user.role, 
       fullName: user.fullName, 
-      phone: user.phone 
+      phone: user.phone,
+      mustChangePassword: user.mustChangePassword
     } 
   }
 })

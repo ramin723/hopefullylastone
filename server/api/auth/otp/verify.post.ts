@@ -242,13 +242,23 @@ export default defineEventHandler(async (event) => {
       fullName: user.fullName 
     })
     
+    // Debug log for mustChangePassword flag
+    console.info('[OTP VERIFY] User login completed', {
+      userId: user.id,
+      role: user.role,
+      mustChangePassword: (user as any).mustChangePassword,
+      hasPassword: user.passwordHash && user.passwordHash.length > 0,
+      expectedRedirect: (user as any).mustChangePassword ? '/onboarding/set-password' : `/${user.role.toLowerCase()}`,
+      timestamp: new Date().toISOString()
+    })
+    
     return {
       ok: true,
       user: { 
         id: user.id, 
         role: user.role, 
-        fullName: user.fullName, 
-        phone: user.phone 
+        fullName: user.fullName,
+        phone: user.phone
       }
     }
     

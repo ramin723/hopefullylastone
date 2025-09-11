@@ -3,7 +3,7 @@ import { prisma } from '../../utils/db'
 import { createRequestLogger } from '../../utils/logger'
 import { randomUUID } from 'crypto'
 import { rateLimitComposite, getClientIP } from '../../utils/rateLimiter'
-import { appendResponseHeader } from 'h3'
+import { appendResponseHeader, setCookie } from 'h3'
 import { AcceptInviteSchema } from '../../validators/invite'
 import { hashToken, isInviteValid } from '../../utils/invite'
 import { normalizePhone } from '../../utils/otp'
@@ -201,7 +201,15 @@ export default defineEventHandler(async (event) => {
         }
         
         // If user has no password, set mustChangePassword flag
-        if (!user.passwordHash || user.passwordHash === '') {
+        const hasPassword = user.passwordHash && user.passwordHash.length > 0
+        console.debug('[INVITE ACCEPT] User exists check', {
+          userId: user.id,
+          hasPassword,
+          currentMustChangePassword: user.mustChangePassword,
+          passwordHashLength: user.passwordHash?.length || 0
+        })
+        
+        if (!hasPassword) {
           user = await tx.user.update({
             where: { id: user.id },
             data: { 
@@ -211,6 +219,10 @@ export default defineEventHandler(async (event) => {
               Mechanic: invite.role === 'MECHANIC',
               Vendor: invite.role === 'VENDOR'
             }
+          })
+          console.debug('[INVITE ACCEPT] Set mustChangePassword to true', {
+            userId: user.id,
+            newMustChangePassword: user.mustChangePassword
           })
         }
         
@@ -336,6 +348,36 @@ export default defineEventHandler(async (event) => {
     // Generate tokens for login
     const tokens = await generateTokens(result.user.id, event)
     
+    // Set cookies with proper flags for dev/prod
+    const isProd = process.env.NODE_ENV === 'production'
+    
+    setCookie(event, 'at', tokens.accessToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProd,      // ← DEV: false  |  PROD: true
+      path: '/',
+      maxAge: 60 * 15      // 15m
+    })
+    
+    setCookie(event, 'rt', tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProd,      // ← DEV: false  |  PROD: true
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30 // 30d
+    })
+    
+    // Log cookie flags for debugging in dev
+    if (!isProd) {
+      logger.info('Cookie flags set for development', {
+        requestId,
+        secure: false,
+        sameSite: 'lax',
+        httpOnly: true,
+        path: '/'
+      })
+    }
+    
     logger.info('Invite accepted successfully', {
       requestId,
       inviteId: invite.id,
@@ -346,6 +388,17 @@ export default defineEventHandler(async (event) => {
       roleEntityCreated: result.roleEntityCreated,
       qrGenerated: result.qrGenerated,
       mustChangePassword: (result.user as any).mustChangePassword
+    })
+    
+    // Debug log for mustChangePassword flag
+    console.info('[INVITE ACCEPT] User invite accepted', {
+      userId: result.user.id,
+      role: invite.role,
+      mustChangePassword: (result.user as any).mustChangePassword,
+      hasPassword: result.user.passwordHash && result.user.passwordHash.length > 0,
+      userCreated: result.userCreated,
+      expectedRedirect: (result.user as any).mustChangePassword ? '/onboarding/set-password' : (invite.role === 'MECHANIC' ? '/mechanic' : '/vendor'),
+      timestamp: new Date().toISOString()
     })
     
     return {

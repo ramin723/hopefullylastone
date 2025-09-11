@@ -8,10 +8,12 @@ export default defineNuxtPlugin(async () => {
   if (!hydrated.value && !hydrating.value) {
     hydrating.value = (async () => {
       try {
-        const res = await $fetch('/api/auth/me')
+        const res = await $fetch('/api/auth/me', { credentials: 'include' })
         user.value = (res as any).user
+        console.debug('[AUTH PLUGIN] me hydrated', { ok: !!user.value })
       } catch {
         user.value = null
+        console.debug('[AUTH PLUGIN] me failed')
       } finally {
         hydrated.value = true
       }

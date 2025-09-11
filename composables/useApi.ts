@@ -54,7 +54,8 @@ export function useApi() {
     const result = await $fetch<T>(url, { 
       ...opts, 
       method: 'GET', 
-      headers: withHeaders('GET', opts.headers) 
+      headers: withHeaders('GET', opts.headers),
+      credentials: 'include' // Ensure cookies are sent
     })
     return result
   }
@@ -97,14 +98,14 @@ export function useApi() {
     await ensureCsrfToken()
     
     try {
-      return await $fetch<T>(url, { ...opts, method: 'PUT', body, headers: withHeaders('PUT', opts.headers) })
+      return await $fetch<T>(url, { ...opts, method: 'PUT', body, headers: withHeaders('PUT', opts.headers), credentials: 'include' })
     } catch (error: any) {
       // Retry once if CSRF token is invalid
       if (error.statusCode === 403 && error.statusMessage === 'Invalid CSRF token') {
         console.log('[CSRF] Token invalid, refreshing and retrying...')
         csrf.value = null
         await ensureCsrfToken()
-        return await $fetch<T>(url, { ...opts, method: 'PUT', body, headers: withHeaders('PUT', opts.headers) })
+        return await $fetch<T>(url, { ...opts, method: 'PUT', body, headers: withHeaders('PUT', opts.headers), credentials: 'include' })
       }
       throw error
     }
@@ -115,14 +116,14 @@ export function useApi() {
     await ensureCsrfToken()
     
     try {
-      return await $fetch<T>(url, { ...opts, method: 'DELETE', headers: withHeaders('DELETE', opts.headers) })
+      return await $fetch<T>(url, { ...opts, method: 'DELETE', headers: withHeaders('DELETE', opts.headers), credentials: 'include' })
     } catch (error: any) {
       // Retry once if CSRF token is invalid
       if (error.statusCode === 403 && error.statusMessage === 'Invalid CSRF token') {
         console.log('[CSRF] Token invalid, refreshing and retrying...')
         csrf.value = null
         await ensureCsrfToken()
-        return await $fetch<T>(url, { ...opts, method: 'DELETE', headers: withHeaders('DELETE', opts.headers) })
+        return await $fetch<T>(url, { ...opts, method: 'DELETE', headers: withHeaders('DELETE', opts.headers), credentials: 'include' })
       }
       throw error
     }

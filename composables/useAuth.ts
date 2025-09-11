@@ -14,7 +14,7 @@ export function useAuth() {
     // شروع یک هیدریت جدید
     hydrating.value = (async () => {
       try {
-        const res = await $fetch('/api/auth/me')
+        const res = await $fetch('/api/auth/me', { credentials: 'include' })
         user.value = (res as any).user
       } catch (error) {
         console.error('[AUTH] ensureAuth error:', error)

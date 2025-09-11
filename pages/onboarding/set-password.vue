@@ -153,21 +153,18 @@ const submitPassword = async () => {
     }) as any
 
     if (response.ok) {
-      successMessage.value = 'رمز عبور با موفقیت ثبت شد'
+      if (response.already) {
+        successMessage.value = 'رمز عبور قبلاً تنظیم شده است'
+      } else {
+        successMessage.value = 'رمز عبور با موفقیت ثبت شد'
+      }
       
-      // Redirect to appropriate hub after 2 seconds
-      setTimeout(() => {
-        redirectToRoleHub()
-      }, 2000)
+      // Refresh auth and redirect immediately
+      await refreshAuth()
+      await redirectToRoleHub()
     }
   } catch (err: any) {
-    if (err.statusCode === 409) {
-      errorMessage.value = 'این مرحله قبلاً انجام شده است. شما می‌توانید به پنل کاربری خود بروید.'
-      // Redirect to hub after showing message
-      setTimeout(() => {
-        redirectToRoleHub()
-      }, 3000)
-    } else if (err.statusCode === 400 || err.statusCode === 422) {
+    if (err.statusCode === 400 || err.statusCode === 422) {
       errorMessage.value = err.data?.message || 'رمز عبور نامعتبر است'
     } else if (err.statusCode === 429) {
       errorMessage.value = 'تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه صبر کنید.'
@@ -176,6 +173,19 @@ const submitPassword = async () => {
     }
   } finally {
     loading.value = false
+  }
+}
+
+const refreshAuth = async () => {
+  try {
+    const { get } = useApi()
+    const response = await get('/api/auth/me') as any
+    if (response.user) {
+      const { user } = useAuth()
+      user.value = response.user
+    }
+  } catch (error) {
+    console.debug('[SET PASSWORD] Auth refresh failed', error)
   }
 }
 
@@ -203,6 +213,15 @@ const logout = async () => {
     navigateTo('/login')
   }
 }
+
+// Check if user already has password set
+onMounted(async () => {
+  const { user } = useAuth()
+  if (user.value?.mustChangePassword === false) {
+    // User already has password, redirect to hub
+    await redirectToRoleHub()
+  }
+})
 
 // Clear messages when form changes
 watch([password, confirmPassword], () => {

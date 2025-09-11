@@ -6,6 +6,20 @@ onMounted(async () => {
   if (!user.value) {
     await ensureAuth()
   }
+  
+  // Failsafe: اگر کاربر باید رمز تعیین کند و در صفحه درست نیست
+  if (user.value?.mustChangePassword && !useRoute().path.includes('/onboarding/set-password')) {
+    console.debug('[AUTH LAYOUT] Failsafe redirect to set password')
+    await navigateTo('/onboarding/set-password')
+  }
+})
+
+// Watch برای تغییرات user
+watch(user, async (newUser) => {
+  if (newUser?.mustChangePassword && !useRoute().path.includes('/onboarding/set-password')) {
+    console.debug('[AUTH LAYOUT] Watch failsafe redirect to set password')
+    await navigateTo('/onboarding/set-password')
+  }
 })
 
 async function handleLogout() {

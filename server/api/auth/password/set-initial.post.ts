@@ -73,19 +73,40 @@ export default defineEventHandler(async (event) => {
   })
   
   try {
-    // Check if user must change password
-    if (!user.mustChangePassword) {
-      logger.warn('User tried to set initial password but mustChangePassword is false', {
+    // Get full user data from database
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { 
+        id: true, 
+        mustChangePassword: true, 
+        passwordHash: true 
+      }
+    })
+    
+    if (!fullUser) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'User not found'
+      })
+    }
+    
+    // Check if user must change password or already has password
+    const hasPassword = fullUser.passwordHash && fullUser.passwordHash.length > 0
+    
+    if (!fullUser.mustChangePassword || hasPassword) {
+      logger.info('User tried to set initial password but already set', {
         requestId,
         userId: user.id,
-        phone: maskPhone(user.phone || '')
+        phone: maskPhone(user.phone || ''),
+        mustChangePassword: fullUser.mustChangePassword,
+        hasPassword
       })
       
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'Conflict',
-        message: 'این مرحله قبلاً انجام شده است. شما می‌توانید به پنل کاربری خود بروید.'
-      })
+      return {
+        ok: true,
+        message: 'Password already set',
+        already: true
+      }
     }
     
     // Hash password
@@ -94,7 +115,7 @@ export default defineEventHandler(async (event) => {
     // Update user in transaction
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
-        where: { id: user.id },
+        where: { id: fullUser.id },
         data: {
           passwordHash,
           mustChangePassword: false
@@ -110,7 +131,8 @@ export default defineEventHandler(async (event) => {
     
     return {
       ok: true,
-      message: 'رمز عبور با موفقیت ثبت شد'
+      message: 'رمز عبور با موفقیت ثبت شد',
+      already: false
     }
     
   } catch (error: any) {

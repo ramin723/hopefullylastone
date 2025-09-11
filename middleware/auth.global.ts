@@ -62,6 +62,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // اگر کاربر لاگین شده و باید رمز اولیه تعیین کند
   if (user.value && user.value.mustChangePassword) {
+    console.debug('[MW] mustChangePassword', user.value?.mustChangePassword, to.path)
+    
     // مسیرهای مجاز برای کاربران با mustChangePassword=true
     const allowedPaths = [
       '/onboarding/set-password',
@@ -77,12 +79,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
     
     // در غیر این صورت، به صفحه تعیین رمز هدایت کن
-    console.log('[AUTH MIDDLEWARE] Redirecting to set password', {
-      userId: user.value.id,
-      phone: maskPhone(user.value.phone || ''),
-      targetPath: to.path
-    })
-    
     return navigateTo('/onboarding/set-password')
   }
 

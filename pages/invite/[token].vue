@@ -131,7 +131,8 @@
 // Meta
 definePageMeta({
   layout: 'default',
-  middleware: []
+  middleware: [],
+  auth: false // Explicitly disable auth for this page
 })
 
 // State
@@ -146,6 +147,41 @@ const inviteData = ref<any>(null)
 const otpCode = ref('')
 
 // Methods
+const hydrateAuth = async () => {
+  try {
+    const { get } = useApi()
+    const response = await get('/api/auth/me') as any
+    
+    if (response.user) {
+      const { user } = useAuth()
+      user.value = response.user
+      console.debug('[INVITE PAGE] me ok', {
+        mustChangePassword: response.user.mustChangePassword
+      })
+    } else {
+      console.debug('[INVITE PAGE] me retry')
+      // Retry once with nextTick
+      await nextTick()
+      const retryResponse = await get('/api/auth/me') as any
+      if (retryResponse.user) {
+        const { user } = useAuth()
+        user.value = retryResponse.user
+        console.debug('[INVITE PAGE] me ok after retry', {
+          mustChangePassword: retryResponse.user.mustChangePassword
+        })
+      }
+    }
+  } catch (error: any) {
+    // Swallow 401 errors to avoid console noise
+    if (error?.statusCode === 401) {
+      console.debug('[INVITE PAGE] me 401 (expected before auth)')
+    } else {
+      console.debug('[INVITE PAGE] me failed', error)
+    }
+    // Don't throw - continue with redirect
+  }
+}
+
 const validateInvite = async () => {
   try {
     const { get } = useApi()
@@ -195,6 +231,14 @@ const submitOtp = async () => {
   if (!otpCode.value || otpCode.value.length !== 5) return
   
   submitting.value = true
+  
+  // Debug log before API call
+  console.debug('[INVITE PAGE] Starting OTP submission', {
+    token: token.substring(0, 8) + '...',
+    otpLength: otpCode.value.length,
+    timestamp: new Date().toISOString()
+  })
+  
   try {
     const { post } = useApi()
     const response = await post('/api/invite/accept', {
@@ -202,33 +246,42 @@ const submitOtp = async () => {
       otpCode: otpCode.value
     }) as any
     
+    // Debug log after successful API response
+    console.debug('[INVITE PAGE] API accept successful', {
+      ok: response.ok,
+      userId: response.user?.id,
+      role: response.user?.role,
+      userCreated: response.created?.user,
+      redirect: response.redirect,
+      timestamp: new Date().toISOString()
+    })
+    
     if (response.ok) {
-      // Store tokens
-      const { accessToken, refreshToken } = response.data.tokens
-      const tokenCookie = useCookie('access_token', { 
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict'
-      })
-      const refreshCookie = useCookie('refresh_token', { 
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict'
-      })
+      console.debug('[INVITE PAGE] accept ok')
+            success.value = true
       
-      tokenCookie.value = accessToken
-      refreshCookie.value = refreshToken
+      // Hydrate auth before redirect
+      console.debug('[INVITE PAGE] hydrating auth...')
+      await hydrateAuth()
       
-      success.value = true
-      
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        redirectToDashboard()
-      }, 2000)
+      // Check if user needs to set password
+      const { user } = useAuth()
+      if (user.value?.mustChangePassword) {
+        console.debug('[INVITE PAGE] route set-password')
+        await navigateTo('/onboarding/set-password')
+      } else {
+        console.debug('[INVITE PAGE] route role')
+        await redirectToDashboard()
+      }
     }
   } catch (err: any) {
+    // Debug log for errors
+    console.debug('[INVITE PAGE] API accept failed', {
+      statusCode: err.statusCode,
+      message: err.message,
+      timestamp: new Date().toISOString()
+    })
+    
     if (err.statusCode === 400) {
       error.value = 'کد تأیید نامعتبر است'
     } else if (err.statusCode === 410) {
@@ -241,13 +294,19 @@ const submitOtp = async () => {
   }
 }
 
-const redirectToDashboard = () => {
-  if (inviteData.value?.role === 'MECHANIC') {
-    navigateTo('/mechanic')
-  } else if (inviteData.value?.role === 'VENDOR') {
-    navigateTo('/vendor')
-  } else {
-    navigateTo('/')
+const redirectToDashboard = async () => {
+  const targetPath = inviteData.value?.role === 'MECHANIC' ? '/mechanic' : 
+                    inviteData.value?.role === 'VENDOR' ? '/vendor' : '/'
+  
+  try {
+    await navigateTo(targetPath)
+    console.debug('[INVITE PAGE] navigation ok')
+  } catch (err: any) {
+    console.error('[INVITE PAGE] Navigation failed', {
+      targetPath,
+      error: err.message,
+      timestamp: new Date().toISOString()
+    })
   }
 }
 
