@@ -56,7 +56,17 @@ export default defineEventHandler(async (event) => {
   })
   // -------------------------------------------------------
 
-  const user = await prisma.user.findUnique({ where: { phone: body.phone } })
+  const user = await prisma.user.findUnique({ 
+    where: { phone: body.phone },
+    select: {
+      id: true,
+      role: true,
+      fullName: true,
+      phone: true,
+      mustChangePassword: true,
+      passwordHash: true
+    }
+  })
   if (!user) {
     logger.error('Login failed: user not found', { phone: body.phone })
     throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
@@ -124,7 +134,8 @@ export default defineEventHandler(async (event) => {
       id: user.id, 
       role: user.role, 
       fullName: user.fullName, 
-      phone: user.phone 
+      phone: user.phone,
+      mustChangePassword: user.mustChangePassword
     }
   }
 })

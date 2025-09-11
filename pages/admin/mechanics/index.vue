@@ -43,50 +43,58 @@
 
       <!-- Search and Filters -->
       <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">جستجو</label>
             <input
-              v-model="filters.search"
+              v-model="searchQuery"
               type="text"
               placeholder="نام، تلفن یا کد مکانیک..."
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @input="debouncedSearch"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت کد</label>
-            <select
-              v-model="filters.hasCode"
+            <label class="block text-sm font-medium text-gray-700 mb-2">شهر</label>
+            <input
+              v-model="state.filters.city"
+              type="text"
+              placeholder="شهر..."
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @change="applyFilters"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">سطح</label>
+            <select
+              v-model="state.filters.tier"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">همه</option>
-              <option value="true">دارد</option>
-              <option value="false">ندارد</option>
+              <option value="BASIC">پایه</option>
+              <option value="PRO">حرفه‌ای</option>
+              <option value="ELITE">نخبه</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت تعلیق</label>
+            <select
+              v-model="state.filters.suspended"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">همه</option>
+              <option value="false">فعال</option>
+              <option value="true">تعلیق شده</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت QR</label>
             <select
-              v-model="filters.qrActive"
+              v-model="state.filters.qrActive"
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @change="applyFilters"
             >
               <option value="">همه</option>
               <option value="true">فعال</option>
               <option value="false">غیرفعال</option>
             </select>
-          </div>
-          <div class="flex items-end">
-            <button
-              @click="applyFilters"
-              :disabled="loading"
-              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              <span v-if="loading">در حال بارگذاری...</span>
-              <span v-else>اعمال فیلتر</span>
-            </button>
           </div>
         </div>
       </div>
@@ -132,7 +140,7 @@
             </div>
             <div>
               <dt class="text-sm font-medium text-gray-500">صفحه فعلی</dt>
-              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ filters.page }}</dd>
+              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ state.page }}</dd>
             </div>
           </div>
         </div>
@@ -150,7 +158,7 @@
                 <div class="text-sm text-gray-500">نام مکانیک</div>
                 <div class="font-semibold text-gray-900">{{ mechanic.fullName || 'نامشخص' }}</div>
               </div>
-              <div class="text-left">
+              <div class="text-left space-y-1">
                 <span 
                   :class="[
                     'px-2 py-1 text-xs font-semibold rounded-full',
@@ -161,6 +169,12 @@
                 >
                   {{ mechanic.qrActive ? 'QR فعال' : 'QR غیرفعال' }}
                 </span>
+                <span 
+                  v-if="mechanic.suspended"
+                  class="block px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
+                >
+                  تعلیق شده
+                </span>
               </div>
             </div>
 
@@ -170,12 +184,35 @@
               <div class="font-medium text-gray-900">{{ mechanic.phone || 'نامشخص' }}</div>
             </div>
 
+            <!-- City and Tier Row -->
+            <div class="mb-4 grid grid-cols-2 gap-4">
+              <div>
+                <div class="text-sm text-gray-500">شهر</div>
+                <div class="font-medium text-gray-900">{{ mechanic.city || 'نامشخص' }}</div>
+              </div>
+              <div>
+                <div class="text-sm text-gray-500">سطح</div>
+                <div class="font-medium text-gray-900">
+                  <span v-if="mechanic.tier === 'BASIC'" class="text-blue-600">پایه</span>
+                  <span v-else-if="mechanic.tier === 'PRO'" class="text-green-600">حرفه‌ای</span>
+                  <span v-else-if="mechanic.tier === 'ELITE'" class="text-purple-600">نخبه</span>
+                  <span v-else class="text-gray-500">نامشخص</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Code Row -->
             <div class="mb-4">
               <div class="text-sm text-gray-500">کد QR</div>
               <div class="font-mono text-lg font-semibold text-blue-600">
                 {{ mechanic.code || 'ندارد' }}
               </div>
+            </div>
+
+            <!-- Specialties Row -->
+            <div v-if="mechanic.specialties" class="mb-4">
+              <div class="text-sm text-gray-500">تخصص‌ها</div>
+              <div class="font-medium text-gray-900 text-sm">{{ mechanic.specialties }}</div>
             </div>
 
             <!-- Date Row -->
@@ -190,14 +227,23 @@
                 :mechanic-id="mechanic.id"
                 :code="mechanic.code"
                 :qr-active="mechanic.qrActive"
-                @success="refresh"
+                :suspended="mechanic.suspended"
+                @success="search"
               />
-              <NuxtLink 
-                :to="`/admin/mechanics/${mechanic.id}`"
-                class="w-full inline-flex justify-center items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                جزئیات
-              </NuxtLink>
+              <div class="grid grid-cols-2 gap-2">
+                <NuxtLink 
+                  :to="`/admin/mechanics/${mechanic.id}`"
+                  class="inline-flex justify-center items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  جزئیات
+                </NuxtLink>
+                <button
+                  @click="editProfile(mechanic)"
+                  class="inline-flex justify-center items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  ویرایش
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -205,15 +251,15 @@
         <!-- Pagination -->
         <div v-if="hasMorePages" class="flex justify-center space-x-2 rtl:space-x-reverse">
           <button 
-            @click="previousPage"
-            :disabled="filters.page <= 1"
+            @click="setPage(state.page - 1)"
+            :disabled="state.page <= 1"
             class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             قبلی
           </button>
-          <span class="px-4 py-2 text-sm text-gray-700">صفحه {{ filters.page }}</span>
+          <span class="px-4 py-2 text-sm text-gray-700">صفحه {{ state.page }}</span>
           <button 
-            @click="nextPage"
+            @click="setPage(state.page + 1)"
             class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
             بعدی
@@ -346,6 +392,81 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Profile Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">ویرایش پروفایل مکانیک</h3>
+          
+          <form @submit.prevent="saveProfile" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">نام کامل *</label>
+              <input
+                v-model="editForm.fullName"
+                type="text"
+                required
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">شهر</label>
+              <input
+                v-model="editForm.city"
+                type="text"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">سطح</label>
+              <select
+                v-model="editForm.tier"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">انتخاب کنید</option>
+                <option value="BASIC">پایه</option>
+                <option value="PRO">حرفه‌ای</option>
+                <option value="ELITE">نخبه</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">تخصص‌ها</label>
+              <textarea
+                v-model="editForm.specialties"
+                rows="3"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="تخصص‌های مکانیک..."
+              ></textarea>
+            </div>
+            
+            <div class="flex space-x-3 pt-4">
+              <button
+                type="submit"
+                :disabled="editing"
+                class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 flex items-center justify-center"
+              >
+                <svg v-if="editing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span v-if="editing">در حال ذخیره...</span>
+                <span v-else>ذخیره تغییرات</span>
+              </button>
+              <button
+                type="button"
+                @click="closeEditModal"
+                class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                انصراف
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -358,16 +479,25 @@ definePageMeta({
 const { user } = useAuth()
 const { show: showToast } = useToast()
 
+// Import useSmartSearch
+import { useSmartSearch } from '~/composables/useSmartSearch'
+
 // State
-const loading = ref(false)
-const error = ref('')
-const mechanics = ref<any[]>([])
-const totalCount = ref(0)
-const hasMorePages = ref(false)
 const showInviteModal = ref(false)
 const creating = ref(false)
 const inviteSuccess = ref(false)
 const inviteSuccessMessage = ref('')
+
+// Edit profile modal
+const showEditModal = ref(false)
+const editing = ref(false)
+const editingMechanic = ref<any>(null)
+const editForm = ref({
+  fullName: '',
+  city: '',
+  tier: '',
+  specialties: ''
+})
 
 const newInvite = ref({
   phone: '',
@@ -376,87 +506,63 @@ const newInvite = ref({
   specialties: ''
 })
 
-// Filters
-const filters = ref({
-  search: '',
-  hasCode: '',
-  qrActive: '',
-  page: 1,
-  pageSize: 20
+// Smart Search
+const api = useApi()
+
+const fetchMechanics = async ({ q, filters, page, pageSize, signal }: {
+  q: string
+  filters: Record<string, any>
+  page: number
+  pageSize: number
+  signal?: AbortSignal
+}) => {
+  const params = new URLSearchParams()
+  if (q) params.append('search', q)
+  if (filters.city) params.append('city', filters.city)
+  if (filters.tier) params.append('tier', filters.tier)
+  if (filters.suspended) params.append('suspended', filters.suspended)
+  if (filters.qrActive) params.append('qrActive', filters.qrActive)
+  params.append('page', page.toString())
+  params.append('pageSize', pageSize.toString())
+  
+  return await api.get(`/api/admin/mechanics?${params.toString()}`, { signal })
+}
+
+const {
+  q: searchQuery,
+  loading,
+  error,
+  data,
+  search,
+  setFilters,
+  setPage,
+  state
+} = useSmartSearch({
+  fetcher: fetchMechanics,
+  minLen: 3,
+  debounceMs: 400,
+  distinct: true,
+  cache: true,
+  initialFetch: true,
+  allowEmptyQuery: true
 })
+
+// Computed values for mechanics data
+const mechanics = computed(() => data.value?.items || [])
+const totalCount = computed(() => data.value?.count || 0)
+const hasMorePages = computed(() => (mechanics.value || []).length === state.pageSize)
 
 // Computed
 const activeQrCount = computed(() => 
-  mechanics.value.filter(m => m.qrActive).length
+  mechanics.value.filter((m: any) => m.qrActive).length
 )
 
 const inactiveQrCount = computed(() => 
-  mechanics.value.filter(m => !m.qrActive).length
+  mechanics.value.filter((m: any) => !m.qrActive).length
 )
 
-// Fetch mechanics with stable key
-const { data, pending, error: fetchError, refresh } = await useFetch(
-  () => {
-    const params = new URLSearchParams()
-    if (filters.value.search) params.append('search', filters.value.search)
-    if (filters.value.hasCode) params.append('hasCode', filters.value.hasCode)
-    if (filters.value.qrActive) params.append('qrActive', filters.value.qrActive)
-    params.append('page', filters.value.page.toString())
-    params.append('pageSize', filters.value.pageSize.toString())
-    
-    return `/api/admin/mechanics?${params.toString()}`
-  },
-  {
-    key: () => `adm-mech-${filters.value.search}-${filters.value.hasCode}-${filters.value.qrActive}-${filters.value.page}-${filters.value.pageSize}`,
-    default: () => ({ items: [], count: 0 }),
-    watch: false
-  }
-)
-
-// Watch data changes
-watch(data, (newData: any) => {
-  if (newData) {
-    mechanics.value = newData.items || []
-    totalCount.value = newData.count || 0
-    hasMorePages.value = (newData.items || []).length === filters.value.pageSize
-  }
-}, { immediate: true })
-
-// Watch loading and error
-watch(pending, (newPending) => {
-  loading.value = newPending
-})
-
-watch(fetchError, (newError) => {
-  error.value = newError?.data?.statusMessage || newError?.message || 'خطا در بارگذاری'
-})
 
 // Methods
-function applyFilters() {
-  filters.value.page = 1 // Reset to first page
-  refresh()
-}
-
-function debouncedSearch() {
-  // Simple debounce - reset page and refresh after 500ms
-  clearTimeout((window as any).searchTimeout)
-  ;(window as any).searchTimeout = setTimeout(() => {
-    filters.value.page = 1
-    refresh()
-  }, 500)
-}
-
-function nextPage() {
-  filters.value.page++
-  refresh()
-}
-
-function previousPage() {
-  if (filters.value.page > 1) {
-    filters.value.page--
-    refresh()
-  }
-}
 
 // Invite methods
 async function createInvite() {
@@ -479,7 +585,8 @@ async function createInvite() {
       // Show toast notification
       showToast('دعوت با موفقیت ارسال شد!', 'success')
       
-      refresh() // Refresh mechanics list
+      // Refresh mechanics list
+      await search()
     }
   } catch (error: any) {
     const errorMessage = error.data?.message || error.statusMessage || 'خطا در ارسال دعوت'
@@ -503,6 +610,50 @@ function closeInviteModal() {
 
 function goToInvites() {
   navigateTo('/admin/invites')
+}
+
+// Edit profile methods
+function editProfile(mechanic: any) {
+  editingMechanic.value = mechanic
+  editForm.value = {
+    fullName: mechanic.fullName || '',
+    city: mechanic.city || '',
+    tier: mechanic.tier || '',
+    specialties: mechanic.specialties || ''
+  }
+  showEditModal.value = true
+}
+
+async function saveProfile() {
+  if (!editingMechanic.value) return
+  
+  editing.value = true
+  try {
+    const { patch } = useApi()
+    const response = await patch(`/api/admin/mechanics/${(editingMechanic.value as any).id}/profile`, editForm.value)
+    
+    if (response.ok) {
+      showToast('پروفایل با موفقیت به‌روزرسانی شد', 'success')
+      showEditModal.value = false
+      await search()
+    }
+  } catch (error: any) {
+    const errorMessage = error.data?.message || error.statusMessage || 'خطا در به‌روزرسانی پروفایل'
+    showToast('خطا: ' + errorMessage, 'error')
+  } finally {
+    editing.value = false
+  }
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  editingMechanic.value = null
+  editForm.value = {
+    fullName: '',
+    city: '',
+    tier: '',
+    specialties: ''
+  }
 }
 
 // Date utilities

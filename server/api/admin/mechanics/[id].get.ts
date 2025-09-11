@@ -9,13 +9,13 @@ export default defineEventHandler(async (event: any) => {
     // 1. Authentication - only ADMIN can view mechanic details
     const auth = await requireAuth(event, ['ADMIN'])
     
-    // 2. Rate limiting - 100 requests per 5 minutes per IP+User
+    // 2. Rate limiting - 60 requests per 5 minutes per IP+User
     const ip = getClientIP(event)
-    const rateKey = `admin.mechanic.detail:${ip}:${auth.id}`
+    const rateKey = `admin.mechanic.details:${ip}:${auth.id}`
     const rateLimit = rateLimitComposite({
       key: rateKey,
       windowMs: 5 * 60 * 1000, // 5 minutes
-      max: 100
+      max: 60
     })
     
     if (!rateLimit.allowed) {
@@ -34,17 +34,11 @@ export default defineEventHandler(async (event: any) => {
       })
     }
     
-    // 4. Get mechanic with user info and stats
+    // 4. Get mechanic with user details and stats
     const mechanic = await prisma.mechanic.findUnique({
       where: { id: mechanicId },
       include: {
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            phone: true
-          }
-        },
+        user: true,
         _count: {
           select: {
             transactions: true,
@@ -61,26 +55,46 @@ export default defineEventHandler(async (event: any) => {
       })
     }
     
-    // 5. Log successful retrieval (without PII)
+    // 5. Calculate stats
+    const stats = await prisma.transaction.aggregate({
+      where: { mechanicId },
+      _sum: {
+        amountTotal: true,
+        amountEligible: true
+      }
+    })
+    
+    // 6. Log the action (without PII)
     logger.info({
       adminId: auth.id,
       mechanicId: mechanic.id,
-      mechanicCode: mechanic.code
-    }, '[ADMIN MECHANIC DETAIL API] Mechanic details retrieved')
+      action: 'view_details',
+      ip
+    }, '[ADMIN MECHANIC DETAILS API] Mechanic details retrieved')
     
-    // 6. Return response with full phone for ADMIN
+    // 7. Return response with suspended status
     return {
       ok: true,
       mechanic: {
         id: mechanic.id,
         code: mechanic.code,
-        tier: mechanic.tier,
         qrActive: mechanic.qrActive,
+        city: mechanic.city,
+        specialties: mechanic.specialties,
+        tier: mechanic.tier,
         createdAt: mechanic.createdAt,
         fullName: mechanic.user.fullName,
-        phone: mechanic.user.phone, // Full phone for ADMIN
+        phone: mechanic.user.phone,
+        suspended: !!(mechanic.user as any).suspendedAt,
+        suspendedAt: (mechanic.user as any).suspendedAt,
+        suspendReason: (mechanic.user as any).suspendReason,
+        mustChangePassword: mechanic.user.mustChangePassword,
+        userCreatedAt: mechanic.user.createdAt,
         stats: {
-          totalTransactions: mechanic._count.transactions
+          totalTransactions: mechanic._count.transactions,
+          totalOrders: mechanic._count.orders,
+          totalAmount: stats._sum.amountTotal || 0,
+          totalEligible: stats._sum.amountEligible || 0
         }
       }
     }
@@ -90,7 +104,7 @@ export default defineEventHandler(async (event: any) => {
       throw error
     }
     
-    logger.error({ err: error }, '[ADMIN MECHANIC DETAIL API] Error retrieving mechanic details')
+    logger.error({ err: error }, '[ADMIN MECHANIC DETAILS API] Error retrieving mechanic details')
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error while retrieving mechanic details'

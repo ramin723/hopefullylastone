@@ -111,6 +111,24 @@ export function useApi() {
     }
   }
   
+  async function patch<T = any>(url: string, body?: any, opts: any = {}) {
+    // Ensure CSRF token is available before making PATCH request
+    await ensureCsrfToken()
+    
+    try {
+      return await $fetch<T>(url, { ...opts, method: 'PATCH', body, headers: withHeaders('PATCH', opts.headers), credentials: 'include' })
+    } catch (error: any) {
+      // Retry once if CSRF token is invalid
+      if (error.statusCode === 403 && error.statusMessage === 'Invalid CSRF token') {
+        console.log('[CSRF] Token invalid, refreshing and retrying...')
+        csrf.value = null
+        await ensureCsrfToken()
+        return await $fetch<T>(url, { ...opts, method: 'PATCH', body, headers: withHeaders('PATCH', opts.headers), credentials: 'include' })
+      }
+      throw error
+    }
+  }
+  
   async function del<T = any>(url: string, opts: any = {}) {
     // Ensure CSRF token is available before making DELETE request
     await ensureCsrfToken()
@@ -129,5 +147,5 @@ export function useApi() {
     }
   }
 
-  return { get, post, put, del }
+  return { get, post, put, patch, del }
 }

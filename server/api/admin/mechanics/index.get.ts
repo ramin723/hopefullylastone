@@ -8,15 +8,17 @@ import { z } from 'zod'
 // Query parameters validation
 const QuerySchema = z.object({
   search: z.string().optional(),
-  hasCode: z.enum(['true', 'false']).optional(),
   qrActive: z.enum(['true', 'false']).optional(),
+  city: z.string().optional(),
+  tier: z.enum(['BASIC', 'PRO', 'ELITE']).optional(),
+  suspended: z.enum(['true', 'false']).optional(),
   page: z.string().regex(/^\d+$/).transform(Number).default(() => 1),
   pageSize: z.string().regex(/^\d+$/).transform(Number).default(() => 20)
 })
 
 export default defineEventHandler(async (event: any) => {
   try {
-    // 1. Authentication - only ADMIN can list mechanics
+    // 1. Authentication - only ADMIN can view mechanics list
     const auth = await requireAuth(event, ['ADMIN'])
     
     // 2. Rate limiting - 60 requests per 5 minutes per IP+User
@@ -37,11 +39,13 @@ export default defineEventHandler(async (event: any) => {
     
     // 3. Parse and validate query parameters
     const query = getQuery(event)
-    const validatedQuery = QuerySchema.parse(query)
+    const { search, qrActive, city, tier, suspended, page, pageSize } = QuerySchema.parse(query)
     
-    const { search, hasCode, qrActive, page, pageSize } = validatedQuery
+    // 4. Calculate pagination
+    const skip = (page - 1) * pageSize
+    const take = pageSize
     
-    // 4. Build where clause
+    // 5. Build where clause
     const where: any = {}
     
     // Search filter
@@ -53,12 +57,6 @@ export default defineEventHandler(async (event: any) => {
       ]
     }
     
-    // hasCode filter
-    if (hasCode === 'true') {
-      where.code = { not: null }
-    } else if (hasCode === 'false') {
-      where.code = null
-    }
     
     // qrActive filter
     if (qrActive === 'true') {
@@ -67,34 +65,38 @@ export default defineEventHandler(async (event: any) => {
       where.qrActive = false
     }
     
-    // 5. Calculate pagination
-    const skip = (page - 1) * pageSize
-    const take = Math.min(pageSize, 100) // Max 100 items per page
+    // city filter
+    if (city) {
+      where.city = { contains: city, mode: 'insensitive' }
+    }
     
-    // 6. Execute queries in parallel
+    // tier filter
+    if (tier) {
+      where.tier = tier
+    }
+    
+    // suspended filter
+    if (suspended === 'true') {
+      where.user = { ...where.user, suspendedAt: { not: null } }
+    } else if (suspended === 'false') {
+      where.user = { ...where.user, suspendedAt: null }
+    }
+    
+    // 6. Fetch mechanics and count in parallel
     const [mechanics, totalCount] = await Promise.all([
       prisma.mechanic.findMany({
         where,
         skip,
         take,
-        select: {
-          id: true,
-          code: true,
-          qrActive: true,
-          createdAt: true,
-          user: {
-            select: {
-              fullName: true,
-              phone: true
-            }
-          }
+        include: {
+          user: true
         },
         orderBy: { createdAt: 'desc' }
       }),
       prisma.mechanic.count({ where })
     ])
     
-    // 7. Mask phone numbers for security in list view
+    // 7. Mask phone numbers for security in list view and add suspended status
     const maskedMechanics = mechanics.map(mechanic => ({
       id: mechanic.id,
       fullName: mechanic.user.fullName,
@@ -103,6 +105,12 @@ export default defineEventHandler(async (event: any) => {
         'نامشخص',
       code: mechanic.code,
       qrActive: mechanic.qrActive,
+      city: mechanic.city,
+      tier: mechanic.tier,
+      specialties: mechanic.specialties,
+      suspended: !!(mechanic.user as any).suspendedAt,
+      suspendedAt: (mechanic.user as any).suspendedAt,
+      suspendReason: (mechanic.user as any).suspendReason,
       createdAt: mechanic.createdAt
     }))
     
@@ -110,22 +118,28 @@ export default defineEventHandler(async (event: any) => {
     logger.info({
       adminId: auth.id,
       searchTerm: search ? '***' : null,
-      hasCodeFilter: hasCode,
       qrActiveFilter: qrActive,
+      cityFilter: city,
+      tierFilter: tier,
+      suspendedFilter: suspended,
       page,
       pageSize,
-      resultCount: mechanics.length,
-      totalCount
+      resultCount: maskedMechanics.length,
+      totalCount,
+      ip
     }, '[ADMIN MECHANICS LIST API] Mechanics list retrieved')
     
     // 9. Return response
     return {
       ok: true,
       items: maskedMechanics,
-      count: totalCount,
-      page,
-      pageSize,
-      hasMore: skip + mechanics.length < totalCount
+      pagination: {
+        page,
+        pageSize,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+        hasMore: page < Math.ceil(totalCount / pageSize)
+      }
     }
     
   } catch (error: any) {
@@ -137,7 +151,8 @@ export default defineEventHandler(async (event: any) => {
     if (error.name === 'ZodError') {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Invalid query parameters'
+        statusMessage: 'Invalid query parameters',
+        data: { errors: error.issues }
       })
     }
     

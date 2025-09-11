@@ -18,6 +18,10 @@ const RULES: { test: (path: string) => boolean; limit: number; windowMs: number 
   { test: p => p.startsWith('/api/settlements') && p.endsWith('/mark-paid'), limit: 10, windowMs: 60_000 }, // 10/min
   { test: p => p === '/api/settlements' && true,                limit: 10, windowMs: 60_000 }, // create/list throttle
   { test: p => p.startsWith('/api/admin/mechanics') && p.includes('/code'), limit: 30, windowMs: 300_000 }, // 30/5min for code actions
+  { test: p => p.startsWith('/api/admin/mechanics') && p.includes('/profile'), limit: 30, windowMs: 300_000 }, // 30/5min for profile updates
+  { test: p => p.startsWith('/api/admin/mechanics') && (p.includes('/suspend') || p.includes('/unsuspend')), limit: 20, windowMs: 600_000 }, // 20/10min for suspend/unsuspend
+  { test: p => p.startsWith('/api/admin/mechanics') && p.includes('/reset-password'), limit: 20, windowMs: 600_000 }, // 20/10min for password reset
+  { test: p => p.startsWith('/api/admin/mechanics') && p.includes('/reinvite'), limit: 10, windowMs: 600_000 }, // 10/10min for reinvite
   { test: p => p === '/api/admin/mechanics' && true, limit: 20, windowMs: 300_000 }, // 20/5min for create mechanic
 ]
 // قانون پیش‌فرض (اگر لازم داشتی):
@@ -48,6 +52,10 @@ export default defineEventHandler((event) => {
     (path.startsWith('/api/settlements') && path.endsWith('/mark-paid')) ? '/api/settlements/mark-paid' :
     (path === '/api/settlements') ? '/api/settlements' :
     (path.startsWith('/api/admin/mechanics') && path.includes('/code')) ? '/api/admin/mechanics/code' :
+    (path.startsWith('/api/admin/mechanics') && path.includes('/profile')) ? '/api/admin/mechanics/profile' :
+    (path.startsWith('/api/admin/mechanics') && (path.includes('/suspend') || path.includes('/unsuspend'))) ? '/api/admin/mechanics/suspend' :
+    (path.startsWith('/api/admin/mechanics') && path.includes('/reset-password')) ? '/api/admin/mechanics/reset-password' :
+    (path.startsWith('/api/admin/mechanics') && path.includes('/reinvite')) ? '/api/admin/mechanics/reinvite' :
     (path === '/api/admin/mechanics') ? '/api/admin/mechanics' :
     path
 
