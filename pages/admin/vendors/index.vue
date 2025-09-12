@@ -38,7 +38,7 @@
 
       <!-- Search and Filters -->
       <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">جستجو</label>
             <input
@@ -59,6 +59,18 @@
               <option value="">همه</option>
               <option value="ACTIVE">فعال</option>
               <option value="INACTIVE">غیرفعال</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت تعلیق</label>
+            <select
+              v-model="filters.suspended"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              @change="applyFilters"
+            >
+              <option value="">همه</option>
+              <option value="false">فعال</option>
+              <option value="true">تعلیق شده</option>
             </select>
           </div>
           <div class="flex items-end">
@@ -100,7 +112,7 @@
       <div v-else-if="vendors && vendors.length > 0" class="space-y-4">
         <!-- Summary -->
         <div class="bg-white shadow rounded-lg p-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
             <div>
               <dt class="text-sm font-medium text-gray-500">کل فروشگاه‌ها</dt>
               <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ totalCount }}</dd>
@@ -108,6 +120,10 @@
             <div>
               <dt class="text-sm font-medium text-gray-500">فعال</dt>
               <dd class="mt-1 text-2xl font-semibold text-green-600">{{ activeCount }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">تعلیق شده</dt>
+              <dd class="mt-1 text-2xl font-semibold text-red-600">{{ suspendedCount }}</dd>
             </div>
             <div>
               <dt class="text-sm font-medium text-gray-500">صفحه فعلی</dt>
@@ -129,7 +145,7 @@
                 <div class="text-sm text-gray-500">نام فروشگاه</div>
                 <div class="font-semibold text-gray-900">{{ vendor.storeName || 'نامشخص' }}</div>
               </div>
-              <div class="text-left">
+              <div class="text-left space-y-1">
                 <span 
                   :class="[
                     'px-2 py-1 text-xs font-semibold rounded-full',
@@ -139,6 +155,12 @@
                   ]"
                 >
                   {{ vendor.status === 'ACTIVE' ? 'فعال' : 'غیرفعال' }}
+                </span>
+                <span 
+                  v-if="vendor.suspended"
+                  class="block px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
+                >
+                  تعلیق شده
                 </span>
               </div>
             </div>
@@ -169,12 +191,25 @@
 
             <!-- Actions -->
             <div class="space-y-2">
-              <NuxtLink 
-                :to="`/admin/vendors/${vendor.id}`"
-                class="w-full inline-flex justify-center items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                جزئیات
-              </NuxtLink>
+              <AdminVendorRowActions
+                :vendor-id="vendor.id"
+                :suspended="vendor.suspended"
+                @success="refresh"
+              />
+              <div class="grid grid-cols-2 gap-2">
+                <NuxtLink 
+                  :to="`/admin/vendors/${vendor.id}`"
+                  class="inline-flex justify-center items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  جزئیات
+                </NuxtLink>
+                <button
+                  @click="editProfile(vendor)"
+                  class="inline-flex justify-center items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  ویرایش
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -344,6 +379,7 @@ const newInvite = ref({
 const filters = ref({
   search: '',
   status: '',
+  suspended: '',
   page: 1,
   pageSize: 20
 })
@@ -353,19 +389,24 @@ const activeCount = computed(() =>
   vendors.value.filter(v => v.status === 'ACTIVE').length
 )
 
+const suspendedCount = computed(() => 
+  vendors.value.filter(v => v.suspended).length
+)
+
 // Fetch vendors with stable key
 const { data, pending, error: fetchError, refresh } = await useFetch(
   () => {
     const params = new URLSearchParams()
     if (filters.value.search) params.append('search', filters.value.search)
     if (filters.value.status) params.append('status', filters.value.status)
+    if (filters.value.suspended) params.append('suspended', filters.value.suspended)
     params.append('page', filters.value.page.toString())
     params.append('pageSize', filters.value.pageSize.toString())
     
     return `/api/admin/vendors?${params.toString()}`
   },
   {
-    key: () => `adm-vendors-${filters.value.search}-${filters.value.status}-${filters.value.page}-${filters.value.pageSize}`,
+    key: () => `adm-vendors-${filters.value.search}-${filters.value.status}-${filters.value.suspended}-${filters.value.page}-${filters.value.pageSize}`,
     default: () => ({ items: [], count: 0 }),
     watch: false
   }
@@ -449,6 +490,12 @@ function closeInviteModal() {
     province: '',
     postalCode: ''
   }
+}
+
+// Edit profile method (placeholder for future implementation)
+function editProfile(vendor: any) {
+  // TODO: Implement edit profile functionality
+  console.log('Edit profile for vendor:', vendor.id)
 }
 
 // Date utilities

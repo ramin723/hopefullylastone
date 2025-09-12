@@ -17,13 +17,14 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const search = query.search as string || ''
   const status = query.status as string || ''
+  const suspended = query.suspended as string || ''
   const page = parseInt(query.page as string) || 1
   const pageSize = parseInt(query.pageSize as string) || 20
   const skip = (page - 1) * pageSize
   
   logger.info('Admin vendors list request allowed', {
     requestId,
-    filters: { search, status },
+    filters: { search, status, suspended },
     pagination: { page, pageSize, skip }
   })
   
@@ -44,6 +45,14 @@ export default defineEventHandler(async (event) => {
       where.status = status
     }
     
+    if (suspended) {
+      if (suspended === 'true') {
+        where.user = { ...where.user, suspendedAt: { not: null } }
+      } else if (suspended === 'false') {
+        where.user = { ...where.user, suspendedAt: null }
+      }
+    }
+    
     // Get vendors with pagination
     const [vendors, total] = await Promise.all([
       prisma.vendor.findMany({
@@ -54,7 +63,9 @@ export default defineEventHandler(async (event) => {
               id: true,
               fullName: true,
               phone: true,
-              status: true
+              status: true,
+              suspendedAt: true,
+              suspendReason: true
             }
           }
         },
@@ -74,7 +85,10 @@ export default defineEventHandler(async (event) => {
       createdAt: vendor.createdAt,
       fullName: vendor.user.fullName,
       phone: vendor.user.phone,
-      userStatus: vendor.user.status
+      userStatus: vendor.user.status,
+      suspended: !!vendor.user.suspendedAt,
+      suspendedAt: vendor.user.suspendedAt,
+      suspendReason: vendor.user.suspendReason
     }))
     
     logger.info('Admin vendors list retrieved successfully', {

@@ -27,5 +27,20 @@ export function useAuth() {
     return user.value
   }
 
-  return { user, hydrated, ensureAuth }
+  // تابع logout
+  const logout = async () => {
+    try {
+      await $fetch('/api/auth/logout', { method: 'POST' })
+    } catch (err) {
+      console.warn('Logout error', err)
+      // در صورت خطا، همچنان state را پاک کن
+    } finally {
+      // همیشه state را پاک کن
+      user.value = null
+      hydrated.value = false
+      await navigateTo('/login', { replace: true })
+    }
+  }
+
+  return { user, hydrated, ensureAuth, logout }
 }
