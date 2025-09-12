@@ -65,6 +65,66 @@
           </NuxtLink>
         </div>
       </div>
+
+      <!-- Additional Options -->
+      <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- آمار و تحلیل Card -->
+        <NuxtLink 
+          to="/vendor/stats"
+          class="group bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-purple-300"
+        >
+          <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 bg-purple-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-300 transition-colors">
+              <svg class="w-8 h-8 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-purple-900 mb-2">آمار و تحلیل</h3>
+            <p class="text-sm text-purple-700">مشاهده آمار پیشرفته و نمودارهای تحلیلی</p>
+            <div class="mt-3 text-xs text-purple-600 bg-purple-200 rounded-full px-3 py-1 inline-block">
+              📊 تحلیل عمیق
+            </div>
+          </div>
+        </NuxtLink>
+
+        <!-- تراکنش‌ها Card -->
+        <NuxtLink 
+          to="/vendor/transactions"
+          class="group bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-blue-300"
+        >
+          <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-300 transition-colors">
+              <svg class="w-8 h-8 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">تراکنش‌ها</h3>
+            <p class="text-sm text-blue-700">مشاهده و مدیریت تمام تراکنش‌ها</p>
+            <div class="mt-3 text-xs text-blue-600 bg-blue-200 rounded-full px-3 py-1 inline-block">
+              📋 مدیریت کامل
+            </div>
+          </div>
+        </NuxtLink>
+
+        <!-- پروفایل Card -->
+        <NuxtLink 
+          to="/profile/edit"
+          class="group bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-gray-300"
+        >
+          <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-gray-300 transition-colors">
+              <svg class="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">پروفایل</h3>
+            <p class="text-sm text-gray-700">مدیریت اطلاعات شخصی و فروشگاه</p>
+            <div class="mt-3 text-xs text-gray-600 bg-gray-200 rounded-full px-3 py-1 inline-block">
+              ⚙️ تنظیمات
+            </div>
+          </div>
+        </NuxtLink>
+      </div>
     </div>
   </div>
 </template>
