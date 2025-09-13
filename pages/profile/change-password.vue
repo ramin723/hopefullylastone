@@ -10,11 +10,6 @@ const form = ref({
 })
 
 const saving = ref(false)
-const showPasswords = ref({
-  current: false,
-  new: false,
-  confirm: false
-})
 
 // اعتبارسنجی رمز عبور
 const validatePassword = (password: string) => {
@@ -100,6 +95,21 @@ definePageMeta({
 
 <template>
   <div class="max-w-md mx-auto">
+    <!-- دکمه برگشت -->
+    <div class="mb-6">
+      <button 
+        @click="router.push('/vendor')"
+        class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors group"
+      >
+        <div class="w-8 h-8 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-white transition-all duration-200">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </div>
+        <span class="text-sm font-medium">بازگشت</span>
+      </button>
+    </div>
+
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900">تغییر رمز عبور</h1>
       <p class="text-gray-600 mt-1">رمز عبور خود را تغییر دهید</p>
@@ -109,96 +119,42 @@ definePageMeta({
       <form @submit.prevent="changePassword" class="space-y-4">
         <!-- رمز عبور فعلی -->
         <div>
-          <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">
-            رمز عبور فعلی <span class="text-red-500">*</span>
-          </label>
-          <div class="relative">
-            <AppInput
-              id="currentPassword"
-              v-model="form.currentPassword"
-              :type="showPasswords.current ? 'text' : 'password'"
-              placeholder="رمز عبور فعلی خود را وارد کنید"
-              required
-              :disabled="saving"
-            />
-            <button
-              type="button"
-              @click="showPasswords.current = !showPasswords.current"
-              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              :disabled="saving"
-            >
-              <svg v-if="!showPasswords.current" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              </svg>
-              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
-              </svg>
-            </button>
-          </div>
+          <AppInput
+            id="currentPassword"
+            v-model="form.currentPassword"
+            type="password"
+            label="رمز عبور فعلی"
+            placeholder="رمز عبور فعلی خود را وارد کنید"
+            required
+            :disabled="saving"
+          />
         </div>
 
         <!-- رمز عبور جدید -->
         <div>
-          <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">
-            رمز عبور جدید <span class="text-red-500">*</span>
-          </label>
-          <div class="relative">
-            <AppInput
-              id="newPassword"
-              v-model="form.newPassword"
-              :type="showPasswords.new ? 'text' : 'password'"
-              placeholder="رمز عبور جدید خود را وارد کنید"
-              required
-              :disabled="saving"
-            />
-            <button
-              type="button"
-              @click="showPasswords.new = !showPasswords.new"
-              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              :disabled="saving"
-            >
-              <svg v-if="!showPasswords.new" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              </svg>
-              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
-              </svg>
-            </button>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">حداقل 6 کاراکتر</p>
+          <AppInput
+            id="newPassword"
+            v-model="form.newPassword"
+            type="password"
+            label="رمز عبور جدید"
+            placeholder="رمز عبور جدید خود را وارد کنید"
+            help="حداقل 6 کاراکتر"
+            required
+            :disabled="saving"
+          />
         </div>
 
         <!-- تکرار رمز عبور جدید -->
         <div>
-          <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">
-            تکرار رمز عبور جدید <span class="text-red-500">*</span>
-          </label>
-          <div class="relative">
-            <AppInput
-              id="confirmPassword"
-              v-model="form.confirmPassword"
-              :type="showPasswords.confirm ? 'text' : 'password'"
-              placeholder="رمز عبور جدید را مجدداً وارد کنید"
-              required
-              :disabled="saving"
-            />
-            <button
-              type="button"
-              @click="showPasswords.confirm = !showPasswords.confirm"
-              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              :disabled="saving"
-            >
-              <svg v-if="!showPasswords.confirm" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              </svg>
-              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
-              </svg>
-            </button>
-          </div>
+          <AppInput
+            id="confirmPassword"
+            v-model="form.confirmPassword"
+            type="password"
+            label="تکرار رمز عبور جدید"
+            placeholder="رمز عبور جدید را مجدداً وارد کنید"
+            required
+            :disabled="saving"
+          />
         </div>
 
         <!-- دکمه‌های عملیات -->

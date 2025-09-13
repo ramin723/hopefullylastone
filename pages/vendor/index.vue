@@ -1,16 +1,24 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-8">
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
-      <div class="mb-8 text-center">
-        <h1 class="text-4xl font-bold text-gray-900">خانه فروشگاه</h1>
-        <p class="mt-4 text-xl text-gray-600">خوش آمدید، {{ vendorName }}</p>
+      <div class="mb-12 text-center">
+        <!-- آیکون بزرگ فروشگاه -->
+        <div class="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+          <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          </svg>
+        </div>
+        
+        <!-- متن خوش‌آمدگویی -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">فروشگاه {{ vendorName }}</h1>
+        <p class="text-lg text-gray-600">خوش آمدید</p>
       </div>
 
       <!-- Quick Summary (Optional) -->
-      <div class="bg-white shadow rounded-lg p-6 mb-8">
+      <div class="bg-white/80 backdrop-blur-sm shadow-lg rounded-2xl p-6 mb-8 border border-white/20">
         <div class="text-center">
-          <h2 class="text-lg font-medium text-gray-900 mb-2">خلاصه سریع</h2>
+          <h2 class="text-lg font-medium text-gray-800 mb-2">خلاصه سریع</h2>
           <p class="text-gray-600">برای شروع کار، یکی از گزینه‌های زیر را انتخاب کنید</p>
         </div>
       </div>
@@ -18,21 +26,21 @@
       <!-- Main Action Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <!-- ثبت تراکنش Card -->
-        <div class="bg-white shadow-lg rounded-xl p-8 text-center hover:shadow-xl transition-shadow duration-300">
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-8 text-center hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/20">
           <div class="mb-6">
-            <div class="mx-auto w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center">
+            <div class="mx-auto w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center shadow-lg">
               <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
               </svg>
             </div>
           </div>
           
-          <h3 class="text-2xl font-bold text-gray-900 mb-4">ثبت تراکنش</h3>
+          <h3 class="text-2xl font-bold text-gray-800 mb-4">ثبت تراکنش</h3>
           <p class="text-gray-600 mb-6">ثبت فروش جدید و محاسبه کمیسیون</p>
           
           <NuxtLink 
             to="/vendor/pos"
-            class="inline-flex items-center px-8 py-4 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 w-full justify-center"
+            class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium rounded-xl hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 w-full justify-center shadow-lg hover:shadow-xl"
           >
             شروع ثبت تراکنش
             <svg class="mr-2 w-5 h-5 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,21 +50,21 @@
         </div>
 
         <!-- تسویه‌ها Card -->
-        <div class="bg-white shadow-lg rounded-xl p-8 text-center hover:shadow-xl transition-shadow duration-300">
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-8 text-center hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/20">
           <div class="mb-6">
-            <div class="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+            <div class="mx-auto w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center shadow-lg">
               <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
               </svg>
             </div>
           </div>
           
-          <h3 class="text-2xl font-bold text-gray-900 mb-4">تسویه‌ها</h3>
+          <h3 class="text-2xl font-bold text-gray-800 mb-4">تسویه‌ها</h3>
           <p class="text-gray-600 mb-6">مشاهده و پیگیری تسویه‌های مالی</p>
           
           <NuxtLink 
             to="/vendor/settlements"
-            class="inline-flex items-center px-8 py-4 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 w-full justify-center"
+            class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 w-full justify-center shadow-lg hover:shadow-xl"
           >
             مشاهده تسویه‌ها
             <svg class="mr-2 w-5 h-5 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +79,7 @@
         <!-- آمار و تحلیل Card -->
         <NuxtLink 
           to="/vendor/stats"
-          class="group bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-purple-300"
+          class="group bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-purple-300/70"
         >
           <div class="p-6 text-center">
             <div class="mx-auto w-16 h-16 bg-purple-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-300 transition-colors">
@@ -90,7 +98,7 @@
         <!-- تراکنش‌ها Card -->
         <NuxtLink 
           to="/vendor/transactions"
-          class="group bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-blue-300"
+          class="group bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-blue-300/70"
         >
           <div class="p-6 text-center">
             <div class="mx-auto w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-300 transition-colors">
@@ -109,7 +117,7 @@
         <!-- پروفایل Card -->
         <NuxtLink 
           to="/profile/edit"
-          class="group bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-gray-300"
+          class="group bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:border-gray-300/70"
         >
           <div class="p-6 text-center">
             <div class="mx-auto w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4 group-hover:bg-gray-300 transition-colors">

@@ -6,72 +6,40 @@
       
       <!-- Header -->
       <div class="mb-8">
-        <div class="flex justify-between items-start">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">ثبت فروش</h1>
-            <p class="mt-2 text-gray-600">فروشگاه: {{ vendorName }}</p>
-          </div>
-          <div class="flex gap-3">
-            <NuxtLink 
-              to="/vendor/settlements"
-              class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-            >
-              <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+        <!-- دکمه برگشت -->
+        <div class="mb-6">
+          <button 
+            @click="router.push('/vendor')"
+            class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors group"
+          >
+            <div class="w-8 h-8 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-white transition-all duration-200">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
               </svg>
-              تسویه‌ها
-            </NuxtLink>
-            <NuxtLink 
-              to="/vendor"
-              class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
-            >
-              <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-              </svg>
-              خانه فروشگاه
-            </NuxtLink>
-          </div>
+            </div>
+            <span class="text-sm font-medium">بازگشت</span>
+          </button>
+        </div>
+
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">ثبت فروش</h1>
+          <p class="mt-2 text-gray-600">فروشگاه: {{ vendorName }}</p>
         </div>
       </div>
 
       <!-- Mechanic Code Section -->
       <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">کد مکانیک</h2>
+        <h2 class="text-lg font-medium text-gray-900 mb-6">کد مکانیک</h2>
         
-        <div v-if="!mechanic" class="space-y-4">
-          <div>
-            <label for="mechanicCode" class="block text-sm font-medium text-gray-700">
-              کد مکانیک
-            </label>
-            <div class="mt-1 flex space-x-3 rtl:space-x-reverse">
-              <input
-                id="mechanicCode"
-                v-model="mechanicCode"
-                type="text"
-                class="flex-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="ABC123"
-                @keyup.enter="validateMechanicCode"
-              />
-              <button
-                @click="validateMechanicCode"
-                :disabled="!mechanicCode || validating"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-              >
-                <span v-if="validating">اعتبارسنجی...</span>
-                <span v-else>اعتبارسنجی</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="bg-green-50 border border-green-200 rounded-md p-4">
-          <div class="flex">
+        <!-- مکانیک انتخاب شده -->
+        <div v-if="mechanic" class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+          <div class="flex items-center">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg class="h-6 w-6 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
               </svg>
             </div>
-            <div class="ml-3">
+            <div class="mr-3">
               <p class="text-sm font-medium text-green-800">
                 مکانیک: {{ mechanic.name }}
               </p>
@@ -82,35 +50,100 @@
           </div>
         </div>
 
+        <!-- دکمه‌های اسکن -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-6">
+          <!-- دکمه اسکن QR مکانیک -->
+          <button
+            @click="showMechanicScanner = !showMechanicScanner"
+            class="group flex-1 bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-lg p-4 text-center hover:from-blue-100 hover:to-indigo-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md"
+          >
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-800 mb-1">اسکن QR مکانیک</h3>
+            <p class="text-xs text-gray-600">اسکن کد QR مکانیک</p>
+          </button>
+
+          <!-- دکمه اسکن سفارش مشتری -->
+          <button
+            @click="showOrderScanner = !showOrderScanner"
+            class="group flex-1 bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-lg p-4 text-center hover:from-green-100 hover:to-emerald-200 hover:border-green-300 transition-all duration-200 hover:shadow-md"
+          >
+            <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-800 mb-1">اسکن سفارش مشتری</h3>
+            <p class="text-xs text-gray-600">اسکن QR سفارش</p>
+          </button>
+        </div>
+
+        <!-- اسکنر QR مکانیک -->
+        <div v-if="showMechanicScanner" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-medium text-blue-800">اسکنر QR مکانیک</h4>
+            <button @click="showMechanicScanner = false" class="text-blue-600 hover:text-blue-800">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <QrScanner @read="parseAndHandleQR" />
+        </div>
+
+        <!-- اسکنر سفارش مشتری -->
+        <div v-if="showOrderScanner" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-medium text-green-800">اسکنر سفارش مشتری</h4>
+            <button @click="showOrderScanner = false" class="text-green-600 hover:text-green-800">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <QrScanner @read="scanOrder" />
+          <div v-if="orderScanning" class="mt-2 text-sm text-green-600">
+            در حال بررسی سفارش...
+          </div>
+          <div v-if="orderError" class="mt-2 text-sm text-red-600">
+            {{ orderError }}
+          </div>
+          <div v-if="orderScanned" class="mt-2 text-sm text-green-600">
+            ✅ سفارش یافت شد - اطلاعات پر شد
+          </div>
+        </div>
+
+        <!-- فیلد متنی کد مکانیک (برای اطمینان خاطر) -->
+        <div class="border-t pt-4">
+          <label for="mechanicCode" class="block text-sm font-medium text-gray-700 mb-2">
+            کد مکانیک (دستی)
+          </label>
+          <div class="flex space-x-3 rtl:space-x-reverse">
+            <input
+              id="mechanicCode"
+              v-model="mechanicCode"
+              type="text"
+              class="flex-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="ABC123"
+              @keyup.enter="validateMechanicCode"
+            />
+            <button
+              @click="validateMechanicCode"
+              :disabled="!mechanicCode || validating"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              <span v-if="validating">اعتبارسنجی...</span>
+              <span v-else>اعتبارسنجی</span>
+            </button>
+          </div>
+        </div>
+
         <div v-if="mechanicError" class="mt-3 text-red-600 text-sm">
           {{ mechanicError }}
         </div>
-
-        <!-- QR Scanner Section -->
-        <details class="mt-3">
-          <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">اسکن QR (اختیاری)</summary>
-          <QrScanner class="mt-2" @read="parseAndHandleQR" />
-        </details>
-
-        <!-- Order Scanner Section -->
-        <details class="mt-3">
-          <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">اسکن سفارش مشتری (اختیاری)</summary>
-          <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <div class="text-sm text-blue-800 mb-2">
-              اسکن QR سفارش برای پر کردن خودکار اطلاعات
-            </div>
-            <QrScanner @read="scanOrder" />
-            <div v-if="orderScanning" class="mt-2 text-sm text-blue-600">
-              در حال بررسی سفارش...
-            </div>
-            <div v-if="orderError" class="mt-2 text-sm text-red-600">
-              {{ orderError }}
-            </div>
-            <div v-if="orderScanned" class="mt-2 text-sm text-green-600">
-              ✅ سفارش یافت شد - اطلاعات پر شد
-            </div>
-          </div>
-        </details>
       </div>
 
       <!-- Sales Form -->
@@ -120,153 +153,170 @@
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <!-- Items Section -->
           <div>
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-md font-medium text-gray-900">آیتم‌های فروش</h3>
-              <div class="flex space-x-2 rtl:space-x-reverse">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+              <h3 class="text-lg font-medium text-gray-900">آیتم‌های فروش</h3>
+              <div class="flex flex-col sm:flex-row gap-2">
                 <button
                   type="button"
                   @click="toggleAllEligible"
-                  class="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                  class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                 >
                   {{ allEligible ? 'نامشمول همه' : 'مشمول همه' }}
                 </button>
-                <button
-                  type="button"
-                  @click="addItem"
-                  class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  + ردیف
-                </button>
               </div>
             </div>
 
-            <!-- Items Table -->
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      نام قطعه
-                    </th>
-                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      تعداد
-                    </th>
-                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      قیمت واحد
-                    </th>
-                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      جمع
-                    </th>
-                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      مشمول
-                    </th>
-                    <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      عملیات
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr v-for="(item, index) in items" :key="index" class="hover:bg-gray-50">
-                    <td class="px-3 py-2">
-                      <input
-                        v-model="item.name"
-                        type="text"
-                        class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        placeholder="نام قطعه"
-                        @keyup.enter="addItem"
-                      />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input
-                        v-model.number="item.qty"
-                        type="number"
-                        min="1"
-                        class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        placeholder="1"
-                        @keyup.enter="addItem"
-                      />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input
-                        v-model.number="item.unitPrice"
-                        type="number"
-                        min="0"
-                        class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        placeholder="0"
-                        @keyup.enter="addItem"
-                      />
-                    </td>
-                    <td class="px-3 py-2 text-sm text-gray-900">
-                      {{ formatCurrency(item.qty * item.unitPrice) }}
-                    </td>
-                    <td class="px-3 py-2">
-                      <input
-                        v-model="item.eligible"
-                        type="checkbox"
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      />
-                    </td>
-                    <td class="px-3 py-2">
-                      <button
-                        type="button"
-                        @click="removeItem(index)"
-                        class="text-red-600 hover:text-red-800"
-                        :disabled="items.length === 1"
-                      >
-                        🗑
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+            <!-- Items Cards (Mobile-friendly) -->
+            <div class="space-y-4">
+              <div 
+                v-for="(item, index) in items" 
+                :key="index" 
+                class="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
+              >
+                <!-- Header with item number and delete button -->
+                <div class="flex justify-between items-center mb-4">
+                  <h4 class="text-sm font-medium text-gray-700">آیتم {{ index + 1 }}</h4>
+                  <button
+                    type="button"
+                    @click="removeItem(index)"
+                    class="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                    :disabled="items.length === 1"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
 
-          <!-- Totals Section -->
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <dt class="text-sm font-medium text-gray-500">مبلغ کل</dt>
-                <dd class="mt-1 text-lg font-semibold text-gray-900">{{ formatCurrency(amountTotal) }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">مبلغ مشمول</dt>
-                <dd class="mt-1 text-lg font-semibold text-indigo-600">{{ formatCurrency(amountEligible) }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">کمیسیون (تخمینی)</dt>
-                <dd class="mt-1 text-sm text-gray-600">{{ formatCurrency(estimatedCommission) }}</dd>
+                <!-- Form fields in grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <!-- نام قطعه -->
+                  <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">نام قطعه</label>
+                    <input
+                      v-model="item.name"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="نام قطعه را وارد کنید"
+                      @keyup.enter="addItem"
+                    />
+                  </div>
+
+                  <!-- تعداد -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">تعداد</label>
+                    <input
+                      v-model.number="item.qty"
+                      type="number"
+                      min="1"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="1"
+                      @keyup.enter="addItem"
+                    />
+                  </div>
+
+                  <!-- قیمت واحد -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">قیمت واحد (تومان)</label>
+                    <input
+                      v-model.number="item.unitPrice"
+                      type="number"
+                      min="0"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="0"
+                      @keyup.enter="addItem"
+                    />
+                  </div>
+
+                  <!-- جمع و مشمول -->
+                  <div class="sm:col-span-2">
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <input
+                            v-model="item.eligible"
+                            type="checkbox"
+                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          مشمول کمیسیون
+                        </label>
+                      </div>
+                      <div class="text-left">
+                        <div class="text-xs text-gray-500">جمع کل</div>
+                        <div class="text-sm font-semibold text-gray-900">
+                          {{ formatCurrency(item.qty * item.unitPrice) }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- دکمه افزودن آیتم در هر کارت -->
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    @click="addItem"
+                    class="w-full inline-flex items-center justify-center px-4 py-2 border-2 border-dashed border-indigo-300 text-sm font-medium rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:border-indigo-400 hover:text-indigo-700 transition-colors"
+                  >
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    افزودن آیتم جدید
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Customer Info -->
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label for="customerPhone" class="block text-sm font-medium text-gray-700">
-                شماره تلفن مشتری *
-              </label>
-              <input
-                id="customerPhone"
-                v-model="form.customerPhone"
-                type="tel"
-                required
-                class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="09123334444"
-              />
-            </div>
+          <div class="bg-gray-50 rounded-xl p-6">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">اطلاعات مشتری</h3>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label for="customerPhone" class="block text-sm font-medium text-gray-700 mb-2">
+                  شماره تلفن مشتری <span class="text-red-500">*</span>
+                </label>
+                <input
+                  id="customerPhone"
+                  v-model="form.customerPhone"
+                  type="tel"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  placeholder="09123334444"
+                />
+              </div>
 
-            <div>
-              <label for="note" class="block text-sm font-medium text-gray-700">
-                یادداشت (اختیاری)
-              </label>
-              <input
-                id="note"
-                v-model="form.note"
-                type="text"
-                class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="توضیحات"
-              />
+              <div>
+                <label for="note" class="block text-sm font-medium text-gray-700 mb-2">
+                  یادداشت (اختیاری)
+                </label>
+                <input
+                  id="note"
+                  v-model="form.note"
+                  type="text"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  placeholder="توضیحات اضافی"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Totals Section -->
+          <div class="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+            <h3 class="text-lg font-medium text-gray-800 mb-4 text-center">خلاصه مالی</h3>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div class="bg-white rounded-lg p-4 text-center shadow-sm">
+                <dt class="text-sm font-medium text-gray-500 mb-2">مبلغ کل</dt>
+                <dd class="text-xl font-bold text-gray-900">{{ formatCurrency(amountTotal) }}</dd>
+              </div>
+              <div class="bg-white rounded-lg p-4 text-center shadow-sm">
+                <dt class="text-sm font-medium text-gray-500 mb-2">مبلغ مشمول</dt>
+                <dd class="text-xl font-bold text-indigo-600">{{ formatCurrency(amountEligible) }}</dd>
+              </div>
+              <div class="bg-white rounded-lg p-4 text-center shadow-sm">
+                <dt class="text-sm font-medium text-gray-500 mb-2">کمیسیون (تخمینی)</dt>
+                <dd class="text-lg font-semibold text-green-600">{{ formatCurrency(estimatedCommission) }}</dd>
+              </div>
             </div>
           </div>
 
@@ -289,25 +339,39 @@
             </div>
           </div>
 
-          <div class="flex justify-end space-x-3 rtl:space-x-reverse items-center">
-            <button
-              type="button"
-              @click="() => resetForm()"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              پاک کردن
-            </button>
-            <button
-              type="submit"
-              :disabled="submitting || !isFormValid"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              <span v-if="submitting">ثبت فروش...</span>
-              <span v-else>ثبت فروش</span>
-            </button>
-            <span v-if="submitMessage.text" :class="submitMessage.type === 'success' ? 'text-green-600' : 'text-red-600'" class="text-sm">
-              {{ submitMessage.text }}
-            </span>
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+            <div class="flex-1">
+              <span v-if="submitMessage.text" :class="submitMessage.type === 'success' ? 'text-green-600' : 'text-red-600'" class="text-sm block text-center sm:text-right">
+                {{ submitMessage.text }}
+              </span>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                @click="() => resetForm()"
+                class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                پاک کردن فرم
+              </button>
+              <button
+                type="submit"
+                :disabled="submitting || !isFormValid"
+                class="inline-flex items-center justify-center px-8 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+              >
+                <svg v-if="!submitting" class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <svg v-else class="w-4 h-4 ml-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span v-if="submitting">در حال ثبت...</span>
+                <span v-else>ثبت فروش</span>
+              </button>
+            </div>
           </div>
         </form>
 
@@ -360,6 +424,7 @@ definePageMeta({
 import QrScanner from '~/components/QrScanner.vue'
 
 const route = useRoute()
+const router = useRouter()
 const { user } = useAuth()
 const { post } = useApi()
 import { useToast } from '~/composables/useToast'
@@ -394,6 +459,10 @@ const orderError = ref<string>('')
 const orderScanned = ref<boolean>(false)
 const fromOrder = ref<boolean>(false)
 const orderCode = ref<string>('')
+
+// Scanner visibility state
+const showMechanicScanner = ref<boolean>(false)
+const showOrderScanner = ref<boolean>(false)
 
 // Computed
 const vendorName = computed(() => user.value?.fullName || 'نامشخص')

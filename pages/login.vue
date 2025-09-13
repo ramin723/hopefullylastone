@@ -1,36 +1,22 @@
 <template>
   <main style="max-width:420px;margin:48px auto">
-    <AppCard title="ورود">
-      <!-- تب‌های ورود -->
-      <div class="flex mb-6 border-b border-gray-200">
-        <button
-          type="button"
-          @click="activeTab = 'password'"
-          :class="[
-            'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-            activeTab === 'password'
-              ? 'border-emerald-500 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          ]"
-        >
-          ورود با رمز عبور
-        </button>
-        <button
-          type="button"
-          @click="activeTab = 'otp'"
-          :class="[
-            'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-            activeTab === 'otp'
-              ? 'border-emerald-500 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          ]"
-        >
-          ورود با کد یکبارمصرف
-        </button>
+    <!-- هدر صفحه لاگین -->
+    <div class="text-center mb-8">
+      <!-- لوگو -->
+      <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <span class="text-white font-bold text-2xl">هـ</span>
       </div>
+      
+      <!-- عنوان اصلی -->
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">ورود به پنل همکاری</h1>
+      
+      <!-- زیرعنوان -->
+      <p class="text-gray-600 text-sm">لطفا اطلاعات خود را وارد کنید</p>
+    </div>
 
+    <AppCard title="">
       <!-- فرم ورود با رمز عبور -->
-      <form v-if="activeTab === 'password'" @submit.prevent="onPasswordSubmit" novalidate>
+      <form v-if="!showOtpForm" @submit.prevent="onPasswordSubmit" novalidate>
         <div style="margin-bottom:12px">
           <AppInput
             v-model="phone"
@@ -61,10 +47,32 @@
         >
           ورود
         </AppButton>
+        
+        <!-- لینک ورود با OTP -->
+        <div class="text-center mt-4">
+          <button 
+            type="button"
+            @click="showOtpForm = true"
+            class="text-sm text-blue-600 hover:text-blue-800 underline transition-colors"
+          >
+            ورود با کد یکبارمصرف
+          </button>
+        </div>
       </form>
 
       <!-- فرم ورود با OTP -->
-      <div v-if="activeTab === 'otp'">
+      <div v-if="showOtpForm">
+        <!-- دکمه برگشت -->
+        <div class="mb-4">
+          <button 
+            type="button"
+            @click="showOtpForm = false; resetOtpFlow()"
+            class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1"
+          >
+            ← برگشت به ورود با رمز عبور
+          </button>
+        </div>
+        
         <!-- مرحله 1: درخواست کد -->
         <form v-if="!otpSent" @submit.prevent="onOtpRequest" novalidate>
           <div style="margin-bottom:12px">
@@ -149,7 +157,7 @@ const password = ref('')
 const loading = ref(false)
 
 // OTP login state
-const activeTab = ref<'password' | 'otp'>('password')
+const showOtpForm = ref(false)
 const otpPhone = ref('')
 const otpCode = ref('')
 const otpSent = ref(false)
@@ -168,14 +176,15 @@ function maskPhone(phone: string): string {
 
 // Reset OTP flow
 function resetOtpFlow() {
+  showOtpForm.value = false
   otpSent.value = false
   otpCode.value = ''
   errorMsg.value = null
   successMsg.value = null
 }
 
-// Clear messages when switching tabs
-watch(activeTab, () => {
+// Clear messages when switching forms
+watch(showOtpForm, () => {
   errorMsg.value = null
   successMsg.value = null
 })

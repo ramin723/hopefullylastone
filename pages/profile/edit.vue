@@ -89,6 +89,19 @@ const saveProfile = async () => {
   }
 }
 
+// تابع برگشت بر اساس نقش کاربر
+const goBack = () => {
+  if (user.value?.role === 'VENDOR') {
+    router.push('/vendor')
+  } else if (user.value?.role === 'MECHANIC') {
+    router.push('/mechanic')
+  } else if (user.value?.role === 'ADMIN') {
+    router.push('/admin')
+  } else {
+    router.push('/')
+  }
+}
+
 // بارگذاری اطلاعات در ابتدا
 onMounted(() => {
   loadProfile()
@@ -102,6 +115,21 @@ definePageMeta({
 
 <template>
   <div class="max-w-2xl mx-auto">
+    <!-- دکمه برگشت -->
+    <div class="mb-6">
+      <button 
+        @click="goBack"
+        class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors group"
+      >
+        <div class="w-8 h-8 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-white transition-all duration-200">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </div>
+        <span class="text-sm font-medium">بازگشت</span>
+      </button>
+    </div>
+
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900">ویرایش پروفایل</h1>
       <p class="text-gray-600 mt-1">اطلاعات شخصی خود را ویرایش کنید</p>

@@ -8,69 +8,80 @@
           { label: 'آمار و تحلیل' }
         ]" />
         
-        <div class="flex justify-between items-start mt-4">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">آمار و تحلیل پیشرفته</h1>
-            <p class="mt-2 text-gray-600">تحلیل عمیق عملکرد کسب‌وکار شما در پلتفرم همکاری</p>
-          </div>
-          <NuxtLink 
-            to="/vendor"
-            class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+        <!-- دکمه برگشت -->
+        <div class="mb-6">
+          <button 
+            @click="router.push('/vendor')"
+            class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors group"
           >
-            <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-            بازگشت به داشبورد
-          </NuxtLink>
+            <div class="w-8 h-8 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-white transition-all duration-200">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </div>
+            <span class="text-sm font-medium">بازگشت</span>
+          </button>
+        </div>
+
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">آمار و تحلیل پیشرفته</h1>
+          <p class="mt-2 text-gray-600">تحلیل عمیق عملکرد کسب‌وکار شما در پلتفرم همکاری</p>
         </div>
       </div>
 
       <!-- Time Period Filter -->
       <div class="mb-8">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div class="flex flex-wrap items-center justify-center gap-2">
-            <span class="text-sm font-medium text-gray-700">بازه زمانی:</span>
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl border border-white/20 p-6">
+          <h3 class="text-lg font-medium text-gray-800 mb-4 text-center">انتخاب بازه زمانی</h3>
+          <div class="flex flex-wrap items-center justify-center gap-3">
             <button
               v-for="period in timePeriods"
               :key="period.value"
               @click="changeTimePeriod(period.value)"
               :class="[
-                'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                'px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md',
                 selectedPeriod === period.value
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
               ]"
             >
               {{ period.label }}
             </button>
-            <div class="text-xs text-gray-500 mt-2 w-full text-center">
-              {{ periodInfo }}
-            </div>
+          </div>
+          <div class="text-sm text-gray-600 mt-4 text-center bg-gray-50 rounded-lg p-3">
+            {{ periodInfo || 'انتخاب بازه زمانی برای مشاهده آمار' }}
           </div>
         </div>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        <p class="mt-2 text-gray-600">در حال بارگذاری آمار...</p>
+      <div v-if="loading" class="text-center py-16">
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-12 border border-white/20">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600"></div>
+          <p class="mt-4 text-gray-600 text-lg">در حال بارگذاری آمار...</p>
+        </div>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="text-center py-12">
-        <div class="text-red-600 mb-4">
-          <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-          </svg>
+      <div v-else-if="error" class="text-center py-16">
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-12 border border-white/20">
+          <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">خطا در بارگذاری آمار</h3>
+          <p class="text-gray-600 mb-6">{{ error }}</p>
+          <button 
+            @click="refreshData"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium rounded-xl hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            تلاش مجدد
+          </button>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">خطا در بارگذاری آمار</h3>
-        <p class="text-gray-600 mb-4">{{ error }}</p>
-        <button 
-          @click="refreshData"
-          class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          تلاش مجدد
-        </button>
       </div>
 
       <!-- Main Content -->
@@ -78,8 +89,8 @@
         <!-- KPIs Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <!-- Total Sales Card -->
-          <AppCard class="text-center">
-            <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 text-center border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div class="mx-auto w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
               <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
               </svg>
@@ -87,11 +98,11 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-2">کل فروش</h3>
             <div class="text-3xl font-bold text-green-600 mb-2">{{ formatCurrency(kpis.totalSales || 0) }}</div>
             <p class="text-sm text-gray-600">مبلغ کل فروش‌ها</p>
-          </AppCard>
+          </div>
 
           <!-- Total Eligible Amount Card -->
-          <AppCard class="text-center">
-            <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+          <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 text-center border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div class="mx-auto w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
               <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
@@ -99,11 +110,11 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-2">مبلغ واجد شرایط</h3>
             <div class="text-3xl font-bold text-blue-600 mb-2">{{ formatCurrency(kpis.totalEligibleAmount || 0) }}</div>
             <p class="text-sm text-gray-600">مبلغ مشمول کمیسیون</p>
-          </AppCard>
+          </div>
 
           <!-- Total Commission Card -->
-          <AppCard class="text-center">
-            <div class="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+          <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 text-center border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div class="mx-auto w-16 h-16 bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
               <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
               </svg>
@@ -111,11 +122,11 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-2">کل کمیسیون</h3>
             <div class="text-3xl font-bold text-orange-600 mb-2">{{ formatCurrency(kpis.totalCommission || 0) }}</div>
             <p class="text-sm text-gray-600">کمیسیون کل پرداخت شده</p>
-          </AppCard>
+          </div>
 
           <!-- Mechanics Count Card -->
-          <AppCard class="text-center">
-            <div class="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+          <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 text-center border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div class="mx-auto w-16 h-16 bg-gradient-to-br from-purple-100 to-violet-100 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
               <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
               </svg>
@@ -123,7 +134,7 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-2">مکانیک‌های فعال</h3>
             <div class="text-3xl font-bold text-purple-600 mb-2">{{ kpis.mechanicCount || 0 }}</div>
             <p class="text-sm text-gray-600">تعداد مکانیک‌های همکار</p>
-          </AppCard>
+          </div>
         </div>
 
         <!-- Charts Section -->
@@ -200,6 +211,7 @@ definePageMeta({
 })
 
 const { user } = useAuth()
+const router = useRouter()
 
 // Computed
 const vendorName = computed(() => user.value?.fullName || 'نامشخص')

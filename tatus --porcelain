@@ -1,0 +1,280 @@
+warning: in the working copy of 'pages/mechanic/orders/new.vue', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/layouts/authenticated.vue b/layouts/authenticated.vue[m
+[1mindex d16e32b..c44dcd5 100644[m
+[1m--- a/layouts/authenticated.vue[m
+[1m+++ b/layouts/authenticated.vue[m
+[36m@@ -51,42 +51,57 @@[m [masync function handleLogout() {[m
+ [m
+ <template>[m
+   <div class="min-h-screen bg-white text-gray-900" @click="closeUserMenu">[m
+[31m-    <header class="border-b bg-gray-50">[m
+[31m-      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">[m
+[31m-        <div class="font-bold">همکاری</div>[m
+[32m+[m[32m    <header class="border-b bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">[m
+[32m+[m[32m      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">[m
+[32m+[m[32m        <!-- لوگو و نام برند -->[m
+[32m+[m[32m        <div class="flex items-center gap-3">[m
+[32m+[m[32m          <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">[m
+[32m+[m[32m            <span class="text-white font-bold text-sm">هـ</span>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <span class="font-bold text-gray-800">همکاری</span>[m
+[32m+[m[32m        </div>[m
+         [m
+         <!-- منوی کاربری -->[m
+         <div v-if="user" class="relative">[m
+           <button [m
+             @click.stop="isUserMenuOpen = !isUserMenuOpen"[m
+[31m-            class="flex items-center gap-2 px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors"[m
+[32m+[m[32m            class="flex items-center gap-2 px-3 py-2 text-sm bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg hover:bg-white hover:shadow-md transition-all duration-200"[m
+           >[m
+[31m-            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-medium">[m
+[31m-              {{ user.fullName?.charAt(0)?.toUpperCase() }}[m
+[32m+[m[32m            <!-- آیکون همبرگری -->[m
+[32m+[m[32m            <div class="flex flex-col gap-1">[m
+[32m+[m[32m              <div class="w-4 h-0.5 bg-gray-600 transition-all duration-200" :class="{ 'rotate-45 translate-y-1.5': isUserMenuOpen }"></div>[m
+[32m+[m[32m              <div class="w-4 h-0.5 bg-gray-600 transition-all duration-200" :class="{ 'opacity-0': isUserMenuOpen }"></div>[m
+[32m+[m[32m              <div class="w-4 h-0.5 bg-gray-600 transition-all duration-200" :class="{ '-rotate-45 -translate-y-1.5': isUserMenuOpen }"></div>[m
+             </div>[m
+[31m-            <div class="text-right">[m
+[31m-              <div class="font-medium">{{ user.fullName }}</div>[m
+[31m-              <div class="text-xs text-gray-500">{{ user.role === 'MECHANIC' ? 'مکانیک' : user.role === 'VENDOR' ? 'فروشنده' : 'مدیر' }}</div>[m
+[31m-            </div>[m
+[31m-            <svg class="w-4 h-4 text-gray-400" :class="{ 'rotate-180': isUserMenuOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[31m-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>[m
+[31m-            </svg>[m
+           </button>[m
+ [m
+           <!-- منوی آبشاری -->[m
+           <div [m
+             v-if="isUserMenuOpen"[m
+             @click.stop[m
+[31m-            class="absolute left-0 mt-2 w-64 bg-white border rounded-lg shadow-lg z-50"[m
+[32m+[m[32m            class="absolute right-0 mt-2 w-80 sm:w-72 max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden"[m
+           >[m
+             <div class="py-2">[m
+[32m+[m[32m              <!-- اطلاعات کاربر -->[m
+[32m+[m[32m              <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">[m
+[32m+[m[32m                <div class="flex items-center gap-3">[m
+[32m+[m[32m                  <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-medium">[m
+[32m+[m[32m                    {{ user.fullName?.charAt(0)?.toUpperCase() }}[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                  <div class="text-right">[m
+[32m+[m[32m                    <div class="font-medium text-gray-800">{{ user.fullName }}</div>[m
+[32m+[m[32m                    <div class="text-xs text-gray-600">{{ user.role === 'MECHANIC' ? 'مکانیک' : user.role === 'VENDOR' ? 'فروشنده' : 'مدیر' }}</div>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              </div>[m
+[32m+[m
+               <!-- ویرایش پروفایل -->[m
+               <NuxtLink [m
+                 to="/profile/edit"[m
+                 @click="closeUserMenu"[m
+[31m-                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"[m
+[32m+[m[32m                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"[m
+               >[m
+[31m-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[32m+[m[32m                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>[m
+                 </svg>[m
+                 ویرایش پروفایل[m
+[36m@@ -96,28 +111,27 @@[m [masync function handleLogout() {[m
+               <NuxtLink [m
+                 to="/profile/change-password"[m
+                 @click="closeUserMenu"[m
+[31m-                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"[m
+[32m+[m[32m                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"[m
+               >[m
+[31m-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[32m+[m[32m                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>[m
+                 </svg>[m
+                 تغییر رمز عبور[m
+               </NuxtLink>[m
+ [m
+[31m-              <!-- آمار و گزارش‌ها -->[m
+[32m+[m[32m              <!-- تماس با ما -->[m
+               <button [m
+                 @click="showComingSoon"[m
+[31m-                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-400 hover:bg-gray-50 transition-colors w-full text-right"[m
+[31m-                disabled[m
+[32m+[m[32m                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors w-full text-right"[m
+               >[m
+[31m-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[31m-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>[m
+[32m+[m[32m                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[32m+[m[32m                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>[m
+                 </svg>[m
+[31m-                آمار و گزارش‌ها[m
+[32m+[m[32m                تماس با ما[m
+               </button>[m
+ [m
+               <!-- خط جداکننده -->[m
+[31m-              <div class="border-t my-1"></div>[m
+[32m+[m[32m              <div class="border-t border-gray-100 my-1"></div>[m
+ [m
+               <!-- خروج -->[m
+               <button [m
+[1mdiff --git a/layouts/default.vue b/layouts/default.vue[m
+[1mindex 565bb38..9587630 100644[m
+[1m--- a/layouts/default.vue[m
+[1m+++ b/layouts/default.vue[m
+[36m@@ -16,14 +16,22 @@[m [masync function doLogout() {[m
+ [m
+ <template>[m
+   <div class="min-h-screen bg-white text-gray-900">[m
+[31m-    <header class="border-b bg-gray-50">[m
+[31m-      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">[m
+[31m-        <div class="font-bold">همکاری</div>[m
+[32m+[m[32m    <header class="border-b bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">[m
+[32m+[m[32m      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">[m
+[32m+[m[32m        <!-- لوگو و نام برند -->[m
+[32m+[m[32m        <div class="flex items-center gap-3">[m
+[32m+[m[32m          <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">[m
+[32m+[m[32m            <span class="text-white font-bold text-sm">هـ</span>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <span class="font-bold text-gray-800">همکاری</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[41m        [m
+[32m+[m[32m        <!-- اطلاعات کاربر -->[m
+         <div class="text-sm flex items-center gap-3">[m
+[31m-          <span v-if="user">[m
+[32m+[m[32m          <span v-if="user" class="text-gray-700">[m
+             {{ user.fullName }} <span class="text-gray-500">({{ user.role }})</span>[m
+           </span>[m
+[31m-          <button v-if="user" class="px-3 py-1 border rounded" @click="doLogout">خروج</button>[m
+[32m+[m[32m          <button v-if="user" class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors" @click="doLogout">خروج</button>[m
+         </div>[m
+       </div>[m
+     </header>[m
+[1mdiff --git a/pages/login.vue b/pages/login.vue[m
+[1mindex e278b55..1afc0f4 100644[m
+[1m--- a/pages/login.vue[m
+[1m+++ b/pages/login.vue[m
+[36m@@ -1,36 +1,22 @@[m
+ <template>[m
+   <main style="max-width:420px;margin:48px auto">[m
+[31m-    <AppCard title="ورود">[m
+[31m-      <!-- تب‌های ورود -->[m
+[31m-      <div class="flex mb-6 border-b border-gray-200">[m
+[31m-        <button[m
+[31m-          type="button"[m
+[31m-          @click="activeTab = 'password'"[m
+[31m-          :class="[[m
+[31m-            'px-4 py-2 text-sm font-medium border-b-2 transition-colors',[m
+[31m-            activeTab === 'password'[m
+[31m-              ? 'border-emerald-500 text-emerald-600'[m
+[31m-              : 'border-transparent text-gray-500 hover:text-gray-700'[m
+[31m-          ]"[m
+[31m-        >[m
+[31m-          ورود با رمز عبور[m
+[31m-        </button>[m
+[31m-        <button[m
+[31m-          type="button"[m
+[31m-          @click="activeTab = 'otp'"[m
+[31m-          :class="[[m
+[31m-            'px-4 py-2 text-sm font-medium border-b-2 transition-colors',[m
+[31m-            activeTab === 'otp'[m
+[31m-              ? 'border-emerald-500 text-emerald-600'[m
+[31m-              : 'border-transparent text-gray-500 hover:text-gray-700'[m
+[31m-          ]"[m
+[31m-        >[m
+[31m-          ورود با کد یکبارمصرف[m
+[31m-        </button>[m
+[32m+[m[32m    <!-- هدر صفحه لاگین -->[m
+[32m+[m[32m    <div class="text-center mb-8">[m
+[32m+[m[32m      <!-- لوگو -->[m
+[32m+[m[32m      <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">[m
+[32m+[m[32m        <span class="text-white font-bold text-2xl">هـ</span>[m
+       </div>[m
+[32m+[m[41m      [m
+[32m+[m[32m      <!-- عنوان اصلی -->[m
+[32m+[m[32m      <h1 class="text-2xl font-bold text-gray-800 mb-2">ورود به پنل همکاری</h1>[m
+[32m+[m[41m      [m
+[32m+[m[32m      <!-- زیرعنوان -->[m
+[32m+[m[32m      <p class="text-gray-600 text-sm">لطفا اطلاعات خود را وارد کنید</p>[m
+[32m+[m[32m    </div>[m
+ [m
+[32m+[m[32m    <AppCard title="">[m
+       <!-- فرم ورود با رمز عبور -->[m
+[31m-      <form v-if="activeTab === 'password'" @submit.prevent="onPasswordSubmit" novalidate>[m
+[32m+[m[32m      <form v-if="!showOtpForm" @submit.prevent="onPasswordSubmit" novalidate>[m
+         <div style="margin-bottom:12px">[m
+           <AppInput[m
+             v-model="phone"[m
+[36m@@ -61,10 +47,32 @@[m
+         >[m
+           ورود[m
+         </AppButton>[m
+[32m+[m[41m        [m
+[32m+[m[32m        <!-- لینک ورود با OTP -->[m
+[32m+[m[32m        <div class="text-center mt-4">[m
+[32m+[m[32m          <button[m[41m [m
+[32m+[m[32m            type="button"[m
+[32m+[m[32m            @click="showOtpForm = true"[m
+[32m+[m[32m            class="text-sm text-blue-600 hover:text-blue-800 underline transition-colors"[m
+[32m+[m[32m          >[m
+[32m+[m[32m            ورود با کد یکبارمصرف[m
+[32m+[m[32m          </button>[m
+[32m+[m[32m        </div>[m
+       </form>[m
+ [m
+       <!-- فرم ورود با OTP -->[m
+[31m-      <div v-if="activeTab === 'otp'">[m
+[32m+[m[32m      <div v-if="showOtpForm">[m
+[32m+[m[32m        <!-- دکمه برگشت -->[m
+[32m+[m[32m        <div class="mb-4">[m
+[32m+[m[32m          <button[m[41m [m
+[32m+[m[32m            type="button"[m
+[32m+[m[32m            @click="showOtpForm = false; resetOtpFlow()"[m
+[32m+[m[32m            class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1"[m
+[32m+[m[32m          >[m
+[32m+[m[32m            ← برگشت به ورود با رمز عبور[m
+[32m+[m[32m          </button>[m
+[32m+[m[32m        </div>[m
+[32m+[m[41m        [m
+         <!-- مرحله 1: درخواست کد -->[m
+         <form v-if="!otpSent" @submit.prevent="onOtpRequest" novalidate>[m
+           <div style="margin-bottom:12px">[m
+[36m@@ -149,7 +157,7 @@[m [mconst password = ref('')[m
+ const loading = ref(false)[m
+ [m
+ // OTP login state[m
+[31m-const activeTab = ref<'password' | 'otp'>('password')[m
+[32m+[m[32mconst showOtpForm = ref(false)[m
+ const otpPhone = ref('')[m
+ const otpCode = ref('')[m
+ const otpSent = ref(false)[m
+[36m@@ -168,14 +176,15 @@[m [mfunction maskPhone(phone: string): string {[m
+ [m
+ // Reset OTP flow[m
+ function resetOtpFlow() {[m
+[32m+[m[32m  showOtpForm.value = false[m
+   otpSent.value = false[m
+   otpCode.value = ''[m
+   errorMsg.value = null[m
+   successMsg.value = null[m
+ }[m
+ [m
+[31m-// Clear messages when switching tabs[m
+[31m-watch(activeTab, () => {[m
+[32m+[m[32m// Clear messages when switching forms[m
+[32m+[m[32mwatch(showOtpForm, () => {[m
+   errorMsg.value = null[m
+   successMsg.value = null[m
+ })[m
+[1mdiff --git a/pages/mechanic/index.vue b/pages/mechanic/index.vue[m
+[1mindex 4654b3c..3bf8d5f 100644[m
+[1m--- a/pages/mechanic/index.vue[m
+[1m+++ b/pages/mechanic/index.vue[m
+[36m@@ -1,108 +1,161 @@[m
+ <template>[m
+[31m-  <div class="min-h-screen bg-gray-50 py-8">[m
+[31m-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">[m
+[32m+[m[32m  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50 to-red-50 py-8">[m
+[32m+[m[32m    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">[m
+       <!-- Header -->[m
+[31m-      <div class="mb-8">[m
+[32m+[m[32m      <div class="mb-12 text-center">[m
+[32m+[m[32m        <!-- آیکون بزرگ تعمیرگاه -->[m
+[32m+[m[32m        <div class="w-24 h-24 bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">[m
+[32m+[m[32m          <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0

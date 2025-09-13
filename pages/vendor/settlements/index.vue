@@ -6,38 +6,31 @@
       
       <!-- Header -->
       <div class="mb-8">
-        <div class="flex justify-between items-start">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">تسویه‌های فروشگاه</h1>
-            <p class="mt-2 text-xl text-gray-600">فروشگاه: {{ vendorName }}</p>
-          </div>
-          <div class="flex gap-3">
-            <NuxtLink 
-              to="/vendor/pos"
-              class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-            >
-              <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        <!-- دکمه برگشت -->
+        <div class="mb-6">
+          <button 
+            @click="router.push('/vendor')"
+            class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors group"
+          >
+            <div class="w-8 h-8 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:bg-white transition-all duration-200">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
               </svg>
-              ثبت تراکنش
-            </NuxtLink>
-            <NuxtLink 
-              to="/vendor"
-              class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
-            >
-              <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-              </svg>
-              خانه فروشگاه
-            </NuxtLink>
-          </div>
+            </div>
+            <span class="text-sm font-medium">بازگشت</span>
+          </button>
+        </div>
+
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">تسویه‌های فروشگاه</h1>
+          <p class="mt-2 text-xl text-gray-600">فروشگاه: {{ vendorName }}</p>
         </div>
       </div>
 
       <!-- Filters -->
-      <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">فیلترها</h2>
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 mb-6 border border-white/20">
+        <h2 class="text-lg font-medium text-gray-800 mb-6">فیلترها</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">از تاریخ</label>
             <JalaliDatePicker 
@@ -56,7 +49,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">وضعیت</label>
             <select 
               v-model="filters.status" 
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             >
               <option value="">همه</option>
               <option value="OPEN">باز</option>
@@ -69,14 +62,14 @@
               v-model.number="filters.page" 
               type="number" 
               min="1"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             />
           </div>
           <div class="flex items-end">
             <button 
               @click="applyFilters"
               :disabled="loading"
-              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <span v-if="loading">در حال بارگذاری...</span>
               <span v-else>اعمال فیلتر</span>
@@ -110,33 +103,34 @@
       <!-- Settlements List -->
       <div v-else-if="settlements && settlements.length > 0" class="space-y-4">
         <!-- Summary -->
-        <div class="bg-white shadow rounded-lg p-6">
+        <div class="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-200 shadow-lg">
+          <h3 class="text-lg font-medium text-gray-800 mb-4 text-center">خلاصه آمار</h3>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <dt class="text-sm font-medium text-gray-500">تعداد تسویه‌ها</dt>
-              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ settlements.length }}</dd>
+            <div class="bg-white rounded-xl p-4 shadow-sm">
+              <dt class="text-sm font-medium text-gray-500 mb-2">تعداد تسویه‌ها</dt>
+              <dd class="text-2xl font-bold text-gray-900">{{ settlements.length }}</dd>
             </div>
-            <div>
-              <dt class="text-sm font-medium text-gray-500">جمع مبلغ مشمول</dt>
-              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ formatCurrency(totalEligible) }}</dd>
+            <div class="bg-white rounded-xl p-4 shadow-sm">
+              <dt class="text-sm font-medium text-gray-500 mb-2">جمع مبلغ مشمول</dt>
+              <dd class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalEligible) }}</dd>
             </div>
-            <div>
-              <dt class="text-sm font-medium text-gray-500">جمع سهم مکانیک</dt>
-              <dd class="mt-1 text-2xl font-semibold text-indigo-600">{{ formatCurrency(totalMechanic) }}</dd>
+            <div class="bg-white rounded-xl p-4 shadow-sm">
+              <dt class="text-sm font-medium text-gray-500 mb-2">جمع سهم مکانیک</dt>
+              <dd class="text-2xl font-bold text-indigo-600">{{ formatCurrency(totalMechanic) }}</dd>
             </div>
-            <div>
-              <dt class="text-sm font-medium text-gray-500">صفحه فعلی</dt>
-              <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ filters.page }}</dd>
+            <div class="bg-white rounded-xl p-4 shadow-sm">
+              <dt class="text-sm font-medium text-gray-500 mb-2">صفحه فعلی</dt>
+              <dd class="text-2xl font-bold text-gray-900">{{ filters.page }}</dd>
             </div>
           </div>
         </div>
 
         <!-- Settlements Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div 
             v-for="settlement in settlements" 
             :key="settlement.id" 
-            class="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow duration-200"
+            class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/20"
           >
             <!-- Header Row -->
             <div class="flex justify-between items-start mb-4">
@@ -204,7 +198,7 @@
             <div class="pt-4 border-t border-gray-200">
               <NuxtLink 
                 :to="`/vendor/settlements/${settlement.id}`"
-                class="inline-flex items-center justify-center w-full px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                class="inline-flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-medium rounded-xl hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 مشاهده جزئیات
                 <svg class="mr-2 w-4 h-4 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,18 +210,18 @@
         </div>
 
         <!-- Pagination -->
-        <div v-if="hasMorePages" class="flex justify-center space-x-2 rtl:space-x-reverse">
+        <div v-if="hasMorePages" class="flex justify-center gap-3 mt-8">
           <button 
             @click="previousPage"
             :disabled="filters.page <= 1"
-            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
           >
             قبلی
           </button>
-          <span class="px-4 py-2 text-sm text-gray-700">صفحه {{ filters.page }}</span>
+          <span class="px-6 py-3 text-sm text-gray-700 bg-gray-50 rounded-xl font-medium">صفحه {{ filters.page }}</span>
           <button 
             @click="nextPage"
-            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            class="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             بعدی
           </button>
@@ -235,13 +229,15 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="bg-white shadow rounded-lg p-12 text-center">
+      <div v-else class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-12 text-center border border-white/20">
         <div class="text-gray-500">
-          <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-          </svg>
-          <p class="text-lg mb-2">هیچ تسویه‌ای یافت نشد</p>
-          <p class="text-sm">برای این فیلترها تسویه‌ای وجود ندارد.</p>
+          <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <p class="text-lg font-medium text-gray-800 mb-2">هیچ تسویه‌ای یافت نشد</p>
+          <p class="text-sm text-gray-600">برای این فیلترها تسویه‌ای وجود ندارد.</p>
         </div>
       </div>
     </div>
@@ -284,6 +280,7 @@ interface SettlementsResponse {
 }
 
 const { user } = useAuth()
+const router = useRouter()
 
 // State
 const loading = ref(false)
