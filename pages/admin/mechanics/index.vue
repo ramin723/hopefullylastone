@@ -96,6 +96,16 @@
               <option value="false">غیرفعال</option>
             </select>
           </div>
+          <div class="flex items-end">
+            <button
+              @click="applyFilters"
+              :disabled="loading"
+              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              <span v-if="loading">در حال بارگذاری...</span>
+              <span v-else>اعمال فیلتر</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -228,7 +238,7 @@
                 :code="mechanic.code"
                 :qr-active="mechanic.qrActive"
                 :suspended="mechanic.suspended"
-                @success="search"
+                @success="fetchMechanics"
               />
               <div class="grid grid-cols-2 gap-2">
                 <NuxtLink 
@@ -479,9 +489,6 @@ definePageMeta({
 const { user } = useAuth()
 const { show: showToast } = useToast()
 
-// Import useSmartSearch
-import { useSmartSearch } from '~/composables/useSmartSearch'
-
 // State
 const showInviteModal = ref(false)
 const creating = ref(false)
@@ -506,51 +513,79 @@ const newInvite = ref({
   specialties: ''
 })
 
-// Smart Search
-const api = useApi()
+// Search and pagination state
+const searchQuery = ref('')
+const loading = ref(false)
+const error = ref('')
+const mechanics = ref<any[]>([])
+const totalCount = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(20)
 
-const fetchMechanics = async ({ q, filters, page, pageSize, signal }: {
-  q: string
-  filters: Record<string, any>
-  page: number
-  pageSize: number
-  signal?: AbortSignal
-}) => {
-  const params = new URLSearchParams()
-  if (q) params.append('search', q)
-  if (filters.city) params.append('city', filters.city)
-  if (filters.tier) params.append('tier', filters.tier)
-  if (filters.suspended) params.append('suspended', filters.suspended)
-  if (filters.qrActive) params.append('qrActive', filters.qrActive)
-  params.append('page', page.toString())
-  params.append('pageSize', pageSize.toString())
-  
-  return await api.get(`/api/admin/mechanics?${params.toString()}`, { signal })
-}
-
-const {
-  q: searchQuery,
-  loading,
-  error,
-  data,
-  search,
-  setFilters,
-  setPage,
-  state
-} = useSmartSearch({
-  fetcher: fetchMechanics,
-  minLen: 3,
-  debounceMs: 400,
-  distinct: true,
-  cache: true,
-  initialFetch: true,
-  allowEmptyQuery: true
+// Filters state
+const state = ref({
+  filters: {
+    city: '',
+    tier: '',
+    suspended: '',
+    qrActive: ''
+  },
+  page: 1,
+  pageSize: 20
 })
 
+// API
+const api = useApi()
+
+// Fetch mechanics function
+const fetchMechanics = async () => {
+  loading.value = true
+  error.value = ''
+  
+  try {
+    const params = new URLSearchParams()
+    if (searchQuery.value) params.append('search', searchQuery.value)
+    if (state.value.filters.city) params.append('city', state.value.filters.city)
+    if (state.value.filters.tier) params.append('tier', state.value.filters.tier)
+    if (state.value.filters.suspended) params.append('suspended', state.value.filters.suspended)
+    if (state.value.filters.qrActive) params.append('qrActive', state.value.filters.qrActive)
+    params.append('page', state.value.page.toString())
+    params.append('pageSize', state.value.pageSize.toString())
+    
+    const response = await api.get(`/api/admin/mechanics?${params.toString()}`)
+    
+    if (response && response.ok) {
+      mechanics.value = response.items || []
+      totalCount.value = response.pagination?.totalCount || 0
+    } else {
+      error.value = 'پاسخ نامعتبر از سرور'
+    }
+  } catch (err: any) {
+    error.value = err.data?.message || err.statusMessage || err.message || 'خطا در بارگذاری مکانیک‌ها'
+  } finally {
+    loading.value = false
+  }
+}
+
+// Apply filters function
+const applyFilters = async () => {
+  state.value.page = 1
+  await fetchMechanics()
+}
+
+// Set page function
+const setPage = (page: number) => {
+  state.value.page = page
+  fetchMechanics()
+}
+
+// Set filters function
+const setFilters = (filters: Record<string, any>) => {
+  Object.assign(state.value.filters, filters)
+}
+
 // Computed values for mechanics data
-const mechanics = computed(() => data.value?.items || [])
-const totalCount = computed(() => data.value?.count || 0)
-const hasMorePages = computed(() => (mechanics.value || []).length === state.pageSize)
+const hasMorePages = computed(() => (mechanics.value || []).length === state.value.pageSize)
 
 // Computed
 const activeQrCount = computed(() => 
@@ -586,7 +621,7 @@ async function createInvite() {
       showToast('دعوت با موفقیت ارسال شد!', 'success')
       
       // Refresh mechanics list
-      await search()
+      await fetchMechanics()
     }
   } catch (error: any) {
     const errorMessage = error.data?.message || error.statusMessage || 'خطا در ارسال دعوت'
@@ -635,7 +670,7 @@ async function saveProfile() {
     if (response.ok) {
       showToast('پروفایل با موفقیت به‌روزرسانی شد', 'success')
       showEditModal.value = false
-      await search()
+      await fetchMechanics()
     }
   } catch (error: any) {
     const errorMessage = error.data?.message || error.statusMessage || 'خطا در به‌روزرسانی پروفایل'
@@ -662,4 +697,9 @@ import { formatJalali } from '~/utils/date'
 function formatDate(date: string | Date): string {
   return formatJalali(date)
 }
+
+// Initial fetch on mount
+onMounted(() => {
+  fetchMechanics()
+})
 </script>

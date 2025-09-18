@@ -46,7 +46,6 @@
               type="text"
               placeholder="نام فروشگاه، تلفن یا شهر..."
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @input="debouncedSearch"
             />
           </div>
           <div>
@@ -54,7 +53,6 @@
             <select
               v-model="filters.status"
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @change="applyFilters"
             >
               <option value="">همه</option>
               <option value="ACTIVE">فعال</option>
@@ -66,7 +64,6 @@
             <select
               v-model="filters.suspended"
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @change="applyFilters"
             >
               <option value="">همه</option>
               <option value="false">فعال</option>
@@ -393,9 +390,12 @@ const suspendedCount = computed(() =>
   vendors.value.filter(v => v.suspended).length
 )
 
-// Fetch vendors with stable key
-const { data, pending, error: fetchError, refresh } = await useFetch(
-  () => {
+// Fetch vendors function
+const fetchVendors = async () => {
+  loading.value = true
+  error.value = ''
+  
+  try {
     const params = new URLSearchParams()
     if (filters.value.search) params.append('search', filters.value.search)
     if (filters.value.status) params.append('status', filters.value.status)
@@ -403,57 +403,35 @@ const { data, pending, error: fetchError, refresh } = await useFetch(
     params.append('page', filters.value.page.toString())
     params.append('pageSize', filters.value.pageSize.toString())
     
-    return `/api/admin/vendors?${params.toString()}`
-  },
-  {
-    key: () => `adm-vendors-${filters.value.search}-${filters.value.status}-${filters.value.suspended}-${filters.value.page}-${filters.value.pageSize}`,
-    default: () => ({ items: [], count: 0 }),
-    watch: false
+    const response = await $fetch(`/api/admin/vendors?${params.toString()}`)
+    
+    if (response) {
+      vendors.value = response.items || []
+      totalCount.value = response.count || 0
+      hasMorePages.value = (response.items || []).length === filters.value.pageSize
+    }
+  } catch (err: any) {
+    error.value = err?.data?.statusMessage || err?.message || 'خطا در بارگذاری'
+  } finally {
+    loading.value = false
   }
-)
-
-// Watch data changes
-watch(data, (newData: any) => {
-  if (newData) {
-    vendors.value = newData.items || []
-    totalCount.value = newData.count || 0
-    hasMorePages.value = (newData.items || []).length === filters.value.pageSize
-  }
-}, { immediate: true })
-
-// Watch loading and error
-watch(pending, (newPending) => {
-  loading.value = newPending
-})
-
-watch(fetchError, (newError) => {
-  error.value = newError?.data?.statusMessage || newError?.message || 'خطا در بارگذاری'
-})
+}
 
 // Methods
 function applyFilters() {
   filters.value.page = 1 // Reset to first page
-  refresh()
-}
-
-function debouncedSearch() {
-  // Simple debounce - reset page and refresh after 500ms
-  clearTimeout((window as any).searchTimeout)
-  ;(window as any).searchTimeout = setTimeout(() => {
-    filters.value.page = 1
-    refresh()
-  }, 500)
+  fetchVendors()
 }
 
 function nextPage() {
   filters.value.page++
-  refresh()
+  fetchVendors()
 }
 
 function previousPage() {
   if (filters.value.page > 1) {
     filters.value.page--
-    refresh()
+    fetchVendors()
   }
 }
 
@@ -470,7 +448,7 @@ async function createInvite() {
     if (response.ok) {
       alert('دعوت با موفقیت ارسال شد')
       closeInviteModal()
-      refresh() // Refresh vendors list
+      fetchVendors() // Refresh vendors list
     }
   } catch (error) {
     alert('خطا در ارسال دعوت')
@@ -504,4 +482,9 @@ import { formatJalali } from '~/utils/date'
 function formatDate(date: string | Date): string {
   return formatJalali(date)
 }
+
+// Initial fetch on mount
+onMounted(() => {
+  fetchVendors()
+})
 </script>

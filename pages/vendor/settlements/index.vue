@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative overflow-visible">
       <!-- Breadcrumbs -->
       <Breadcrumbs :items="breadcrumbItems" />
       
@@ -28,21 +28,21 @@
       </div>
 
       <!-- Filters -->
-      <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 mb-6 border border-white/20">
+      <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 mb-6 border border-white/20 relative z-10">
         <h2 class="text-lg font-medium text-gray-800 mb-6">فیلترها</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">از تاریخ</label>
-            <JalaliDatePicker 
-              v-model="filters.from" 
-              placeholder="1403-06-05 (شمسی)"
+            <SimpleDatePicker
+              v-model="filters.from"
+              placeholder="تاریخ شروع را انتخاب کنید"
             />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">تا تاریخ</label>
-            <JalaliDatePicker 
-              v-model="filters.to" 
-              placeholder="1403-06-05 (شمسی)"
+            <SimpleDatePicker
+              v-model="filters.to"
+              placeholder="تاریخ پایان را انتخاب کنید"
             />
           </div>
           <div>
@@ -130,7 +130,7 @@
           <div 
             v-for="settlement in settlements" 
             :key="settlement.id" 
-            class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/20"
+            class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/20 relative z-10"
           >
             <!-- Header Row -->
             <div class="flex justify-between items-start mb-4">
@@ -229,7 +229,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-12 text-center border border-white/20">
+      <div v-else class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-12 text-center border border-white/20 relative z-10">
         <div class="text-gray-500">
           <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,7 +307,7 @@ const breadcrumbItems = computed(() => [
   { label: 'تسویه‌ها' }
 ])
 
-// Fetch settlements with stable key
+// Fetch settlements with stable key - فقط با کلیک دکمه اعمال فیلتر
 const { data, pending, error: fetchError, refresh } = await useFetch<SettlementsResponse>(
   () => {
     const params = new URLSearchParams()
@@ -331,7 +331,8 @@ const { data, pending, error: fetchError, refresh } = await useFetch<Settlements
       pageSize: 20,
       hasMore: false
     }),
-    watch: false
+    watch: false,
+    immediate: false // فقط با فراخوانی دستی
   }
 )
 
@@ -357,8 +358,13 @@ watch(fetchError, (newError) => {
 // Methods
 function applyFilters() {
   filters.page = 1 // Reset to first page
-  refresh()
+  refresh() // فقط با کلیک دکمه اعمال فیلتر درخواست ارسال می‌شود
 }
+
+// بارگذاری اولیه داده‌ها
+onMounted(() => {
+  refresh()
+})
 
 function nextPage() {
   filters.page++
@@ -374,7 +380,7 @@ function previousPage() {
 
 // Date utilities
 import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput, formatJalali } from '~/utils/date'
-import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
+import SimpleDatePicker from '~/components/SimpleDatePicker.vue'
 
 function formatDate(date: string | Date): string {
   return formatJalali(date)

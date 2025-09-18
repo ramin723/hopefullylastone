@@ -18,18 +18,18 @@
         <!-- تاریخ از -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">تاریخ از</label>
-          <JalaliDatePicker
+          <SimpleDatePicker
             v-model="filters.from"
-            placeholder="1403-06-05 (شمسی)"
+            placeholder="تاریخ شروع را انتخاب کنید"
           />
         </div>
 
         <!-- تاریخ تا -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">تاریخ تا</label>
-          <JalaliDatePicker
+          <SimpleDatePicker
             v-model="filters.to"
-            placeholder="1403-06-05 (شمسی)"
+            placeholder="تاریخ پایان را انتخاب کنید"
           />
         </div>
 
@@ -60,15 +60,21 @@
       <div class="mt-4 flex flex-wrap gap-2">
         <button
           @click="quickRange(7)"
-          class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+          class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors"
         >
           هفته گذشته
         </button>
         <button
           @click="quickRange(30)"
-          class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+          class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors"
         >
           ماه گذشته
+        </button>
+        <button
+          @click="clearDates"
+          class="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          پاک کردن تاریخ‌ها
         </button>
       </div>
     </div>
@@ -200,7 +206,8 @@
 import { useToast } from '~/composables/useToast'
 import { formatJalali } from '~/utils/date'
 import { normalizeDateInputToISO, normalizeDateInputToISOEndOfDay } from '~/utils/date-ui'
-import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
+import SimpleDatePicker from '~/components/SimpleDatePicker.vue'
+// import moment from 'moment-jalaali'
 definePageMeta({ 
   auth: true,
   layout: 'authenticated' 
@@ -273,17 +280,51 @@ watch(error, (e) => {
   }
 })
 
+// تابع تبدیل میلادی به شمسی
+function gregorianToJalali(gregorianDate: Date): string {
+  const year = gregorianDate.getFullYear()
+  const month = gregorianDate.getMonth() + 1
+  const day = gregorianDate.getDate()
+  
+  // الگوریتم ساده و صحیح تبدیل میلادی به جلالی
+  // محاسبه دقیق‌تر برای سال‌های اخیر
+  let jalaliYear = year - 621
+  let jalaliMonth = month + 2
+  let jalaliDay = day
+  
+  if (jalaliMonth > 12) {
+    jalaliMonth -= 12
+    jalaliYear++
+  }
+  
+  // تنظیم محدوده‌ها
+  if (jalaliMonth > 12) {
+    jalaliMonth = 12
+  }
+  if (jalaliDay > 31) {
+    jalaliDay = 31
+  }
+  
+  return `${jalaliYear}-${jalaliMonth.toString().padStart(2, '0')}-${jalaliDay.toString().padStart(2, '0')}`
+}
+
 function quickRange(days: number) {
   const end = new Date()
   const start = new Date()
   start.setDate(end.getDate() - days)
   
-  // تبدیل به تاریخ شمسی
-  const startJalali = `${start.getFullYear() + 621}-${(start.getMonth() + 1).toString().padStart(2, '0')}-${start.getDate().toString().padStart(2, '0')}`
-  const endJalali = `${end.getFullYear() + 621}-${(end.getMonth() + 1).toString().padStart(2, '0')}-${end.getDate().toString().padStart(2, '0')}`
+  // تبدیل به تاریخ شمسی با الگوریتم صحیح
+  const startJalali = gregorianToJalali(start)
+  const endJalali = gregorianToJalali(end)
   
   filters.value.from = startJalali
   filters.value.to = endJalali
+  applyFilters()
+}
+
+function clearDates() {
+  filters.value.from = ''
+  filters.value.to = ''
   applyFilters()
 }
 

@@ -33,7 +33,6 @@
           v-model="filters.phone"
           placeholder="جستجو بر اساس شماره تلفن"
           label="شماره تلفن"
-          @input="debouncedSearch"
         />
         <AppSelect
           v-model="filters.status"
@@ -42,8 +41,11 @@
           label="وضعیت"
           @change="loadInvites"
         />
-        <div class="flex items-end">
-          <AppButton @click="resetFilters" variant="outline" class="w-full">
+        <div class="flex items-end space-x-2">
+          <AppButton @click="loadInvites" class="flex-1 bg-indigo-600 hover:bg-indigo-700">
+            اعمال فیلتر
+          </AppButton>
+          <AppButton @click="resetFilters" variant="outline" class="flex-1">
             پاک کردن فیلترها
           </AppButton>
         </div>
@@ -442,10 +444,7 @@ const changePage = (page: number) => {
   loadInvites()
 }
 
-const debouncedSearch = debounce(() => {
-  pagination.value.page = 1
-  loadInvites()
-}, 500)
+// Removed debouncedSearch - now using manual filter application
 
 // Utility functions
 const getStatusClass = (status: string) => {
@@ -473,18 +472,7 @@ const isJustCreated = (inviteId: number) => {
   return justCreatedId && Number(justCreatedId) === inviteId
 }
 
-// Debounce utility
-function debounce(func: Function, wait: number) {
-  let timeout: NodeJS.Timeout
-  return function executedFunction(...args: any[]) {
-    const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
-  }
-}
+// Debounce utility removed - no longer needed
 
 // Lifecycle
 onMounted(() => {

@@ -63,9 +63,9 @@
         <!-- تاریخ از -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-700 mb-2">تاریخ از</label>
-          <JalaliDatePicker
+          <SimpleDatePicker
             v-model="form.from"
-            placeholder="1403-06-05 (شمسی)"
+            placeholder="تاریخ شروع را انتخاب کنید"
             :disabled="pending"
           />
           <p class="text-xs text-gray-500 mt-1">تاریخ شمسی به فرمت 1403-06-05</p>
@@ -74,20 +74,20 @@
         <!-- تاریخ تا -->
         <div class="mb-6">
           <label class="text-sm font-medium text-gray-700 mb-2">تاریخ تا</label>
-          <JalaliDatePicker
+          <SimpleDatePicker
             v-model="form.to"
-            placeholder="1403-06-05 (شمسی)"
+            placeholder="تاریخ پایان را انتخاب کنید"
             :disabled="pending"
           />
           <p class="text-xs text-gray-500 mt-1">تاریخ شمسی به فرمت 1403-06-05</p>
         </div>
 
         <!-- دکمه‌های سریع بازه تاریخ -->
-        <div class="mb-6 flex gap-2">
+        <div class="mb-6 flex flex-wrap gap-2">
           <button
             type="button"
             @click="quickRange(7)"
-            class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+            class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors"
             :disabled="pending"
           >
             هفته گذشته
@@ -95,10 +95,18 @@
           <button
             type="button"
             @click="quickRange(30)"
-            class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+            class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors"
             :disabled="pending"
           >
             ماه گذشته
+          </button>
+          <button
+            type="button"
+            @click="clearDates"
+            class="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+            :disabled="pending"
+          >
+            پاک کردن تاریخ‌ها
           </button>
         </div>
 
@@ -225,7 +233,8 @@
 import { useToast } from '~/composables/useToast'
 import { formatJalaliWithTime } from '~/utils/date'
 import { normalizeDateInputToISO, normalizeDateInputToISOEndOfDay } from '~/utils/date-ui'
-import JalaliDatePicker from '~/components/JalaliDatePicker.vue'
+import SimpleDatePicker from '~/components/SimpleDatePicker.vue'
+// import moment from 'moment-jalaali'
 
 definePageMeta({ 
   auth: true,
@@ -374,17 +383,50 @@ function onSubmit(e: Event) {
   if (!pending.value) submitForm()
 }
 
+// تابع تبدیل میلادی به شمسی
+function gregorianToJalali(gregorianDate: Date): string {
+  const year = gregorianDate.getFullYear()
+  const month = gregorianDate.getMonth() + 1
+  const day = gregorianDate.getDate()
+  
+  // الگوریتم ساده و صحیح تبدیل میلادی به جلالی
+  // محاسبه دقیق‌تر برای سال‌های اخیر
+  let jalaliYear = year - 621
+  let jalaliMonth = month + 2
+  let jalaliDay = day
+  
+  if (jalaliMonth > 12) {
+    jalaliMonth -= 12
+    jalaliYear++
+  }
+  
+  // تنظیم محدوده‌ها
+  if (jalaliMonth > 12) {
+    jalaliMonth = 12
+  }
+  if (jalaliDay > 31) {
+    jalaliDay = 31
+  }
+  
+  return `${jalaliYear}-${jalaliMonth.toString().padStart(2, '0')}-${jalaliDay.toString().padStart(2, '0')}`
+}
+
 function quickRange(days: number) {
   const end = new Date()
   const start = new Date()
   start.setDate(end.getDate() - days)
   
-  // تبدیل به تاریخ شمسی (بدون استفاده از $dayjs)
-  const startJalali = `${start.getFullYear() + 621}-${(start.getMonth() + 1).toString().padStart(2, '0')}-${start.getDate().toString().padStart(2, '0')}`
-  const endJalali = `${end.getFullYear() + 621}-${(end.getMonth() + 1).toString().padStart(2, '0')}-${end.getDate().toString().padStart(2, '0')}`
+  // تبدیل به تاریخ شمسی با الگوریتم صحیح
+  const startJalali = gregorianToJalali(start)
+  const endJalali = gregorianToJalali(end)
   
   form.value.from = startJalali
   form.value.to = endJalali
+}
+
+function clearDates() {
+  form.value.from = ''
+  form.value.to = ''
 }
 
 async function onPreview() {

@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50 to-red-50 py-8">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative overflow-visible">
       <!-- Header -->
       <div class="mb-8">
         <!-- دکمه برگشت مینیمال -->
@@ -44,20 +44,16 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">از تاریخ</label>
-            <input 
-              v-model="filters.from" 
-              type="text" 
-              placeholder="1403-06-05 (شمسی)"
-              class="w-full border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            <SimpleDatePicker
+              v-model="filters.from"
+              placeholder="تاریخ شروع را انتخاب کنید"
             />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">تا تاریخ</label>
-            <input 
-              v-model="filters.to" 
-              type="text" 
-              placeholder="1403-06-05 (شمسی)"
-              class="w-full border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            <SimpleDatePicker
+              v-model="filters.to"
+              placeholder="تاریخ پایان را انتخاب کنید"
             />
           </div>
           <div>
@@ -118,7 +114,7 @@
       <!-- Settlements List -->
       <div v-else-if="settlements && settlements.length > 0" class="space-y-4">
         <!-- Summary -->
-        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 mb-8 border border-white/20">
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 mb-8 border border-white/20 relative z-10">
           <div class="mb-4">
             <h2 class="text-lg font-semibold text-gray-900 mb-2">خلاصه تسویه‌ها</h2>
             <p class="text-sm text-gray-600">آمار کلی تسویه‌های شما</p>
@@ -148,7 +144,7 @@
           <div 
             v-for="settlement in settlements" 
             :key="settlement.id" 
-            class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative z-10"
           >
             <!-- Header Row -->
             <div class="flex justify-between items-start mb-6">
@@ -285,7 +281,7 @@
 
         <!-- Pagination -->
         <div v-if="hasMorePages" class="mt-8">
-          <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 border border-white/20">
+          <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 border border-white/20 relative z-10">
             <div class="flex justify-center items-center gap-4">
               <button 
                 @click="previousPage"
@@ -318,7 +314,7 @@
 
       <!-- Empty State -->
       <div v-else class="text-center py-16">
-        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-12 border border-white/20">
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-12 border border-white/20 relative z-10">
           <div class="w-20 h-20 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <svg class="h-10 w-10 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
@@ -366,7 +362,7 @@ const filters = reactive({
   pageSize: 20
 })
 
-// Fetch settlements with stable key
+// Fetch settlements with stable key - فقط با کلیک دکمه اعمال فیلتر
 const { data, pending, error: fetchError, refresh } = await useFetch(
   () => {
     const params = new URLSearchParams()
@@ -381,7 +377,8 @@ const { data, pending, error: fetchError, refresh } = await useFetch(
   {
     key: () => `mech-settlements-${filters.status}-${filters.from}-${filters.to}-${filters.page}-${filters.pageSize}`,
     default: () => ({ items: [], count: 0, totalEligible: 0, totalMechanic: 0 }),
-    watch: false
+    watch: false,
+    immediate: false // فقط با فراخوانی دستی
   }
 )
 
@@ -407,8 +404,13 @@ watch(fetchError, (newError) => {
 // Methods
 function applyFilters() {
   filters.page = 1 // Reset to first page
-  refresh()
+  refresh() // فقط با کلیک دکمه اعمال فیلتر درخواست ارسال می‌شود
 }
+
+// بارگذاری اولیه داده‌ها
+onMounted(() => {
+  refresh()
+})
 
 function nextPage() {
   filters.page++
@@ -424,6 +426,7 @@ function previousPage() {
 
 // Date utilities
 import { toISOFromJalaliInput, toISOEndOfDayFromJalaliInput, formatJalali } from '~/utils/date'
+import SimpleDatePicker from '~/components/SimpleDatePicker.vue'
 
 function formatDate(date: string | Date): string {
   return formatJalali(date)
